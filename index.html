@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>שעון נוכחות - משק בית</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            --text-dark: #1e1b4b;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Heebo', sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- תצוגת לוגין (לובי) --- */
+        #login-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            text-align: center;
+            color: var(--white);
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            padding: 30px 25px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: var(--glass-shadow);
+        }
+        .login-card h1 { font-size: 1.8rem; margin-bottom: 10px; font-weight: 800; }
+        .login-card p { font-size: 1rem; opacity: 0.9; margin-bottom: 25px; }
+
+        /* --- תצוגת אפליקציה --- */
+        #app-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        header {
+            background: rgba(30, 27, 75, 0.85);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--white);
+            padding: 20px 15px 15px;
+            text-align: center;
+        }
+        header h1 { font-size: 1.3rem; font-weight: 800; }
+        .emp-info-bar {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-around;
+            font-weight: 600;
+        }
+
+        main {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 15px 100px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h2 { color: var(--primary-dark); font-size: 1.3rem; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid #e0e7ff; padding-bottom: 8px; }
+
+        label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #c7d2fe;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            background: #fff;
+        }
+        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+
+        .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: transform 0.1s;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+
+        .btn-success { background: #059669; }
+        .btn-whatsapp { background: #25D366; color: white; margin-bottom: 10px; }
+        .btn-email { background: #2563eb; color: white; }
+
+        /* כרטיסיות משמרות */
+        .shift-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-right: 5px solid var(--primary);
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .shift-date { font-weight: 800; font-size: 1.05rem; color: var(--primary-dark); }
+        .shift-details { font-size: 0.9rem; color: #4b5563; }
+        .shift-pay { font-weight: 800; color: #059669; font-size: 1rem; }
+
+        nav {
+            position: fixed;
+            bottom: 0; width: 100%;
+            background: rgba(30, 27, 75, 0.9);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+        .nav-btn {
+            background: none; border: none; color: #a5b4fc;
+            font-size: 0.8rem; font-weight: 800;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            cursor: pointer; flex-grow: 1;
+        }
+        .nav-btn span { font-size: 1.4rem; }
+        .nav-btn.active { color: var(--white); }
+
+        .summary-box {
+            background: linear-gradient(135deg, #312e81, #4338ca);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .summary-box .big-num { font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="login-view">
+        <div class="login-card">
+            <div style="font-size: 3.5rem; margin-bottom: 10px;">🧹</div>
+            <h1>מעקב שעות משק בית</h1>
+            <p>הכנס קוד גישה לכניסה למערכת</p>
+            <input type="password" id="pin-input" placeholder="קוד PIN" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
+            <button class="btn-primary" onclick="checkPin()">התחבר</button>
+        </div>
+    </div>
+
+    <div id="app-view">
+        <header>
+            <h1>שעון נוכחות - משק בית</h1>
+            <div class="emp-info-bar">
+                <span id="hdr-name">שם: ...</span>
+                <span id="hdr-id">ת"ז: ...</span>
+                <span id="hdr-rate">תעריף: ... ₪/שעה</span>
+            </div>
+        </header>
+
+        <main>
+            <div id="tab-log" class="tab-content active">
+                <div class="glass-panel">
+                    <h2>⏱️ דיווח משמרת חדשה</h2>
+                    
+                    <label>תאריך:</label>
+                    <input type="date" id="shift-date">
+
+                    <div class="time-row">
+                        <div>
+                            <label>שעת התחלה:</label>
+                            <input type="time" id="shift-start" value="08:00">
+                        </div>
+                        <div>
+                            <label>שעת סיום:</label>
+                            <input type="time" id="shift-end" value="12:00">
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="addShift()">שמור משמרת</button>
+                </div>
+
+                <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">📋 משמרות אחרונות</h3>
+                <div id="recent-shifts-list"></div>
+            </div>
+
+            <div id="tab-report" class="tab-content">
+                <div class="glass-panel">
+                    <h2>📊 דוח חודשי לביטוח לאומי</h2>
+                    <label>בחר חודש ושנה:</label>
+                    <input type="month" id="report-month" onchange="renderMonthlyReport()">
+
+                    <div class="summary-box">
+                        <div>סך הכל שעות בחודש:</div>
+                        <div class="big-num" id="rpt-total-hours">0 שעות</div>
+                        <div style="margin-top: 10px; font-size: 1.1rem; font-weight: 700;" id="rpt-total-pay">סך הכל לתשלום: ₪0</div>
+                    </div>
+
+                    <button class="btn-primary btn-whatsapp" onclick="exportWhatsApp()">📤 שתף דוח בוואטסאפ</button>
+                    <button class="btn-primary btn-email" onclick="exportEmail()">✉️ שלח דוח במייל</button>
+                </div>
+
+                <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">פירוט ימים בחודש</h3>
+                <div id="monthly-shifts-list"></div>
+            </div>
+
+            <div id="tab-settings" class="tab-content">
+                <div class="glass-panel">
+                    <h2>⚙️ הגדרות עובד/ת ושכר</h2>
+                    <label>שם העובד/ת:</label>
+                    <input type="text" id="set-emp-name" placeholder="שם מלא">
+
+                    <label>תעודת זהות (לביטוח לאומי):</label>
+                    <input type="text" id="set-emp-id" placeholder="מספר תעודת זהות">
+
+                    <label>תעריף שעתי (₪ לשעה):</label>
+                    <input type="number" id="set-emp-rate" placeholder="למשל: 70">
+
+                    <label>קוד גישה לאפליקציה (PIN):</label>
+                    <input type="text" id="set-app-pin" placeholder="למשל: 1981">
+
+                    <button class="btn-primary btn-success" onclick="saveSettings()">💾 שמור הגדרות</button>
+                </div>
+            </div>
+        </main>
+
+        <nav>
+            <button class="nav-btn active" onclick="switchTab('log', this)"><span>⏱️</span>דיווח שעות</button>
+            <button class="nav-btn" onclick="switchTab('report', this)"><span>📊</span>דוח חודשי</button>
+            <button class="nav-btn" onclick="switchTab('settings', this)"><span>⚙️</span>הגדרות</button>
+        </nav>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAKlewYVxd7bWRRV-M8hs_YZKuYp1V0TQM",
+            authDomain: "family-travel-app-d4710.firebaseapp.com",
+            databaseURL: "https://family-travel-app-d4710-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "family-travel-app-d4710",
+            storageBucket: "family-travel-app-d4710.firebasestorage.app",
+            messagingSenderId: "843954095365",
+            appId: "1:843954095365:web:d9687120c3987d3a7aa36c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database().ref('CleanerApp');
+
+        let appSettings = { empName: 'ישראלה ישראלי', empId: '000000000', empRate: 70, pin: '1981' };
+        let allShifts = [];
+
+        // תאריך של היום בדיווח
+        document.getElementById('shift-date').valueAsDate = new Date();
+        document.getElementById('report-month').value = new Date().toISOString().slice(0,7);
+
+        function checkPin() {
+            const inputPin = document.getElementById('pin-input').value.trim();
+            if (inputPin === appSettings.pin) {
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('app-view').style.display = 'flex';
+            } else {
+                alert('קוד PIN שגוי.');
+            }
+        }
+
+        // טעינה מהענן
+        db.on('value', snap => {
+            const data = snap.val() || {};
+            if (data.settings) {
+                appSettings = { ...appSettings, ...data.settings };
+            }
+            if (data.shifts) {
+                allShifts = Object.keys(data.shifts).map(key => ({ id: key, ...data.shifts[key] }));
+            } else {
+                allShifts = [];
+            }
+            updateHeaderUI();
+            renderRecentShifts();
+            renderMonthlyReport();
+        });
+
+        function updateHeaderUI() {
+            document.getElementById('hdr-name').innerText = `שם: ${appSettings.empName}`;
+            document.getElementById('hdr-id').innerText = `ת"ז: ${appSettings.empId}`;
+            document.getElementById('hdr-rate').innerText = `תעריף: ₪${appSettings.empRate}/שעה`;
+
+            document.getElementById('set-emp-name').value = appSettings.empName;
+            document.getElementById('set-emp-id').value = appSettings.empId;
+            document.getElementById('set-emp-rate').value = appSettings.empRate;
+            document.getElementById('set-app-pin').value = appSettings.pin;
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (btn) btn.classList.add('active');
+        }
+
+        function saveSettings() {
+            const newSettings = {
+                empName: document.getElementById('set-emp-name').value.trim(),
+                empId: document.getElementById('set-emp-id').value.trim(),
+                empRate: parseFloat(document.getElementById('set-emp-rate').value) || 0,
+                pin: document.getElementById('set-app-pin').value.trim() || '1981'
+            };
+            db.child('settings').set(newSettings).then(() => alert('ההגדרות נשמרו בהצלחה!'));
+        }
+
+        function addShift() {
+            const date = document.getElementById('shift-date').value;
+            const start = document.getElementById('shift-start').value;
+            const end = document.getElementById('shift-end').value;
+
+            if (!date || !start || !end) return alert('נא למלא תאריך, שעת התחלה ושעת סיום.');
+
+            const startMinutes = timeToMinutes(start);
+            const endMinutes = timeToMinutes(end);
+
+            if (endMinutes <= startMinutes) return alert('שעת הסיום חייבת להיות מאוחרת משעת ההתחלה.');
+
+            const hours = (endMinutes - startMinutes) / 60;
+            const newShift = { date, start, end, hours };
+
+            db.child('shifts').push(newShift).then(() => {
+                alert('המשמרת נשמרה בהצלחה!');
+            });
+        }
+
+        function deleteShift(id) {
+            if (confirm('האם למחוק משמרת זו?')) {
+                db.child('shifts').child(id).remove();
+            }
+        }
+
+        function timeToMinutes(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function renderRecentShifts() {
+            const list = document.getElementById('recent-shifts-list');
+            list.innerHTML = '';
+            const sorted = [...allShifts].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+            if (sorted.length === 0) list.innerHTML = '<div style="color:white; text-align:center;">אין משמרות תועדו עדיין.</div>';
+
+            sorted.forEach(s => {
+                const pay = s.hours * appSettings.empRate;
+                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                list.innerHTML += `
+                    <div class="shift-card">
+                        <div>
+                            <div class="shift-date">${formattedDate}</div>
+                            <div class="shift-details">${s.start} - ${s.end} (${s.hours} שעות)</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="shift-pay">₪${pay.toFixed(0)}</div>
+                            <button onclick="deleteLocation('${s.id}')" onclick="deleteShift('${s.id}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderMonthlyReport() {
+            const selectedMonth = document.getElementById('report-month').value; // YYYY-MM
+            const filtered = allShifts.filter(s => s.date.startsWith(selectedMonth));
+
+            let totalHours = 0;
+            filtered.forEach(s => totalHours += s.hours);
+            const totalPay = totalHours * appSettings.empRate;
+
+            document.getElementById('rpt-total-hours').innerText = `${totalHours.toFixed(1)} שעות`;
+            document.getElementById('rpt-total-pay').innerText = `סך הכל לתשלום: ₪${totalPay.toFixed(0)}`;
+
+            const list = document.getElementById('monthly-shifts-list');
+            list.innerHTML = '';
+
+            filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
+                const pay = s.hours * appSettings.empRate;
+                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+                list.innerHTML += `
+                    <div class="shift-card">
+                        <div>
+                            <div class="shift-date">${formattedDate}</div>
+                            <div class="shift-details">${s.start} - ${s.end} (${s.hours} שעות)</div>
+                        </div>
+                        <div class="shift-pay">₪${pay.toFixed(0)}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function generateReportText() {
+            const selectedMonth = document.getElementById('report-month').value;
+            const [year, month] = selectedMonth.split('-');
+            const filtered = allShifts.filter(s => s.date.startsWith(selectedMonth));
+            
+            let totalHours = 0;
+            filtered.forEach(s => totalHours += s.hours);
+            const totalPay = totalHours * appSettings.empRate;
+
+            let text = `📋 *דוח שעות עבודה - משק בית*\n`;
+            text += `עובד/ת: ${appSettings.empName} | ת"ז: ${appSettings.empId}\n`;
+            text += `חודש: ${month}/${year}\n`;
+            text += `------------------------------\n`;
+            text += `סך הכל שעות: ${totalHours.toFixed(1)} שעות\n`;
+            text += `תעריף שעתי: ₪${appSettings.empRate}\n`;
+            text += `סך הכל לתשלום: ₪${totalPay.toFixed(0)}\n`;
+            text += `------------------------------\n`;
+            text += `פירוט משמרות:\n`;
+
+            filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
+                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+                text += `• ${formattedDate}: ${s.start}-${s.end} (${s.hours} שעות)\n`;
+            });
+
+            return text;
+        }
+
+        function exportWhatsApp() {
+            const text = generateReportText();
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function exportEmail() {
+            const text = generateReportText();
+            const selectedMonth = document.getElementById('report-month').value;
+            const subject = `דוח שעות משק בית - ${selectedMonth}`;
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
