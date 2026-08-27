@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>שעון נוכחות - משק בית</title>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- הגדרות לאייקון במסך הבית -->
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -75,15 +76,30 @@
             backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             color: var(--white);
-            padding: 20px 15px 15px;
+            padding: 15px;
             text-align: center;
+            padding-top: max(15px, env(safe-area-inset-top));
         }
-        header h1 { font-size: 1.3rem; font-weight: 800; }
+        .header-title-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        header h1 { font-size: 1.3rem; font-weight: 800; margin: 0; }
+        .header-icon {
+            width: 35px; height: 35px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        
         .emp-info-bar {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 12px;
             padding: 8px 12px;
-            margin-top: 10px;
+            margin-top: 15px;
             font-size: 0.9rem;
             display: flex;
             justify-content: space-around;
@@ -124,6 +140,9 @@
             background: #fff;
         }
         input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        
+        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); cursor: pointer; margin: 0 0 0 10px; }
+        .checkbox-label { display: flex; align-items: center; color: var(--primary-dark); font-weight: 800; margin-bottom: 15px; cursor: pointer; }
 
         .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -146,7 +165,7 @@
         .btn-whatsapp { background: #25D366; color: white; margin-bottom: 10px; }
         .btn-email { background: #2563eb; color: white; }
 
-        /* כרטיסיות משמרות */
+        /* כרטיסיות (משמרות / ביטוח לאומי) */
         .shift-card {
             background: rgba(255, 255, 255, 0.9);
             border-right: 5px solid var(--primary);
@@ -171,11 +190,12 @@
             display: flex;
             justify-content: space-around;
             padding: 10px 0;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             z-index: 100;
         }
         .nav-btn {
             background: none; border: none; color: #a5b4fc;
-            font-size: 0.8rem; font-weight: 800;
+            font-size: 0.75rem; font-weight: 800;
             display: flex; flex-direction: column; align-items: center; gap: 4px;
             cursor: pointer; flex-grow: 1;
         }
@@ -191,13 +211,35 @@
             margin-bottom: 20px;
         }
         .summary-box .big-num { font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
+        
+        /* פופאפ הוראות התקנה חכם */
+        #install-prompt {
+            position: fixed; bottom: 80px; left: 5%; width: 90%;
+            background: rgba(79, 70, 229, 0.95); backdrop-filter: blur(10px);
+            color: white; padding: 20px; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 9999;
+            display: none; animation: slideUp 0.5s ease-out; border: 1px solid rgba(255,255,255,0.2);
+        }
+        #install-prompt h3 { margin-bottom: 10px; font-size: 1.2rem; font-weight: 800; display:flex; align-items:center; gap:8px;}
+        #install-prompt p { font-size: 1rem; line-height: 1.4; margin-bottom: 15px; }
+        .install-close-btn { background: white; color: var(--primary); border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
+        @keyframes slideUp { from { transform: translateY(150%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body>
 
+    <!-- גלאי ופופאפ התקנה -->
+    <div id="install-prompt">
+        <h3><span style="font-size: 1.5rem;">📲</span> התקינו את האפליקציה!</h3>
+        <p id="install-instructions">טוען הוראות...</p>
+        <button class="install-close-btn" onclick="dismissInstall()">הבנתי, תודה</button>
+    </div>
+
+    <!-- מסך לוגין / לובי -->
     <div id="login-view">
         <div class="login-card">
-            <div style="font-size: 3.5rem; margin-bottom: 10px;">🧹</div>
+            <!-- אייקון האפליקציה במסך הפתיחה -->
+            <img src="icon.png" alt="לוגו" style="width: 90px; height: 90px; border-radius: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); margin-bottom: 15px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5);" onerror="this.style.display='none'">
             <h1>מעקב שעות משק בית</h1>
             <p>הכנס קוד גישה לכניסה למערכת</p>
             <input type="password" id="pin-input" placeholder="קוד PIN" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
@@ -205,9 +247,13 @@
         </div>
     </div>
 
+    <!-- תצוגת האפליקציה -->
     <div id="app-view">
         <header>
-            <h1>שעון נוכחות - משק בית</h1>
+            <div class="header-title-container">
+                <img src="icon.png" alt="לוגו" class="header-icon" onerror="this.style.display='none'">
+                <h1>שעון נוכחות - משק בית</h1>
+            </div>
             <div class="emp-info-bar">
                 <span id="hdr-name">שם: ...</span>
                 <span id="hdr-id">ת"ז: ...</span>
@@ -216,6 +262,7 @@
         </header>
 
         <main>
+            <!-- בלשונית 1: דיווח שעות -->
             <div id="tab-log" class="tab-content active">
                 <div class="glass-panel">
                     <h2>⏱️ דיווח משמרת חדשה</h2>
@@ -241,9 +288,10 @@
                 <div id="recent-shifts-list"></div>
             </div>
 
+            <!-- בלשונית 2: דוח חודשי -->
             <div id="tab-report" class="tab-content">
                 <div class="glass-panel">
-                    <h2>📊 דוח חודשי לביטוח לאומי</h2>
+                    <h2>📊 דוח חודשי</h2>
                     <label>בחר חודש ושנה:</label>
                     <input type="month" id="report-month" onchange="renderMonthlyReport()">
 
@@ -261,6 +309,33 @@
                 <div id="monthly-shifts-list"></div>
             </div>
 
+            <!-- בלשונית 3: ביטוח לאומי חדש! -->
+            <div id="tab-btl" class="tab-content">
+                <div class="glass-panel">
+                    <h2>🛡️ מעקב ביטוח לאומי</h2>
+                    <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--primary-dark);">
+                        כאן תוכלו לעקוב אחרי החודשים שעליהם דיווחתם ולצרף אישור תשלום.
+                    </p>
+                    
+                    <label>בחר חודש ושנה:</label>
+                    <input type="month" id="btl-month">
+                    
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="btl-paid">
+                        האם שולם דיווח לחודש זה?
+                    </label>
+                    
+                    <label>קישור לאישור תשלום (Drive / Dropbox):</label>
+                    <input type="text" id="btl-link" dir="ltr" placeholder="https://...">
+                    
+                    <button class="btn-primary" onclick="saveBtlRecord()">💾 הוסף/עדכן דיווח</button>
+                </div>
+
+                <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">חודשים במעקב</h3>
+                <div id="btl-list"></div>
+            </div>
+
+            <!-- בלשונית 4: הגדרות עובד -->
             <div id="tab-settings" class="tab-content">
                 <div class="glass-panel">
                     <h2>⚙️ הגדרות עובד/ת ושכר</h2>
@@ -282,16 +357,45 @@
         </main>
 
         <nav>
-            <button class="nav-btn active" onclick="switchTab('log', this)"><span>⏱️</span>דיווח שעות</button>
-            <button class="nav-btn" onclick="switchTab('report', this)"><span>📊</span>דוח חודשי</button>
+            <button class="nav-btn active" onclick="switchTab('log', this)"><span>⏱️</span>שעות</button>
+            <button class="nav-btn" onclick="switchTab('report', this)"><span>📊</span>דוחות</button>
+            <button class="nav-btn" onclick="switchTab('btl', this)"><span>🛡️</span>ב. לאומי</button>
             <button class="nav-btn" onclick="switchTab('settings', this)"><span>⚙️</span>הגדרות</button>
         </nav>
     </div>
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
     <script>
+        // --- פופאפ הוראות התקנה PWA ---
+        function checkInstallPrompt() {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+            if (isStandalone) return; 
+
+            if (localStorage.getItem('install_prompt_dismissed_cleaner')) return;
+
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isAndroid = /Android/.test(navigator.userAgent);
+
+            const promptEl = document.getElementById('install-prompt');
+            const textEl = document.getElementById('install-instructions');
+
+            if (isIOS) {
+                textEl.innerHTML = "כדי להתקין את האפליקציה למסך הבית (עם האייקון), לחצו על כפתור <strong>השיתוף</strong> (⍐) למטה, ואז בחרו ב- <strong>הוסף למסך הבית</strong> (➕).";
+                promptEl.style.display = 'block';
+            } else if (isAndroid) {
+                textEl.innerHTML = "כדי להתקין את האפליקציה למסך הבית (עם האייקון), לחצו על <strong>שלוש הנקודות</strong> (⋮) למעלה, ואז בחרו ב- <strong>הוסף למסך הבית</strong>.";
+                promptEl.style.display = 'block';
+            }
+        }
+        function dismissInstall() {
+            document.getElementById('install-prompt').style.display = 'none';
+            localStorage.setItem('install_prompt_dismissed_cleaner', 'true');
+        }
+        setTimeout(checkInstallPrompt, 2000);
+
         const firebaseConfig = {
             apiKey: "AIzaSyAKlewYVxd7bWRRV-M8hs_YZKuYp1V0TQM",
             authDomain: "family-travel-app-d4710.firebaseapp.com",
@@ -306,10 +410,13 @@
 
         let appSettings = { empName: 'ישראלה ישראלי', empId: '000000000', empRate: 70, pin: '1981' };
         let allShifts = [];
+        let allBtl = {};
 
         // תאריך של היום בדיווח
         document.getElementById('shift-date').valueAsDate = new Date();
-        document.getElementById('report-month').value = new Date().toISOString().slice(0,7);
+        const currentMonthStr = new Date().toISOString().slice(0,7);
+        document.getElementById('report-month').value = currentMonthStr;
+        document.getElementById('btl-month').value = currentMonthStr;
 
         function checkPin() {
             const inputPin = document.getElementById('pin-input').value.trim();
@@ -332,9 +439,15 @@
             } else {
                 allShifts = [];
             }
+            if (data.btl) {
+                allBtl = data.btl;
+            } else {
+                allBtl = {};
+            }
             updateHeaderUI();
             renderRecentShifts();
             renderMonthlyReport();
+            renderBtlRecords();
         });
 
         function updateHeaderUI() {
@@ -401,7 +514,10 @@
             list.innerHTML = '';
             const sorted = [...allShifts].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
-            if (sorted.length === 0) list.innerHTML = '<div style="color:white; text-align:center;">אין משמרות תועדו עדיין.</div>';
+            if (sorted.length === 0) {
+                list.innerHTML = '<div style="color:white; text-align:center;">אין משמרות תועדו עדיין.</div>';
+                return;
+            }
 
             sorted.forEach(s => {
                 const pay = s.hours * appSettings.empRate;
@@ -410,11 +526,11 @@
                     <div class="shift-card">
                         <div>
                             <div class="shift-date">${formattedDate}</div>
-                            <div class="shift-details">${s.start} - ${s.end} (${s.hours} שעות)</div>
+                            <div class="shift-details">${s.start} - ${s.end} (${s.hours.toFixed(1)} שעות)</div>
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <div class="shift-pay">₪${pay.toFixed(0)}</div>
-                            <button onclick="deleteLocation('${s.id}')" onclick="deleteShift('${s.id}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
+                            <button onclick="deleteShift('${s.id}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -422,7 +538,7 @@
         }
 
         function renderMonthlyReport() {
-            const selectedMonth = document.getElementById('report-month').value; // YYYY-MM
+            const selectedMonth = document.getElementById('report-month').value; 
             const filtered = allShifts.filter(s => s.date.startsWith(selectedMonth));
 
             let totalHours = 0;
@@ -442,9 +558,65 @@
                     <div class="shift-card">
                         <div>
                             <div class="shift-date">${formattedDate}</div>
-                            <div class="shift-details">${s.start} - ${s.end} (${s.hours} שעות)</div>
+                            <div class="shift-details">${s.start} - ${s.end} (${s.hours.toFixed(1)} שעות)</div>
                         </div>
                         <div class="shift-pay">₪${pay.toFixed(0)}</div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- ניהול ביטוח לאומי ---
+        function saveBtlRecord() {
+            const month = document.getElementById('btl-month').value;
+            const paid = document.getElementById('btl-paid').checked;
+            const link = document.getElementById('btl-link').value.trim();
+            
+            if (!month) return alert('יש לבחור חודש ושנה.');
+            
+            db.child('btl').child(month).set({ paid, link }).then(() => {
+                alert('הסטטוס נשמר בהצלחה!');
+                document.getElementById('btl-link').value = '';
+                document.getElementById('btl-paid').checked = false;
+            });
+        }
+
+        function deleteBtlRecord(month) {
+            if(confirm('האם למחוק רישום זה?')) {
+                db.child('btl').child(month).remove();
+            }
+        }
+
+        function renderBtlRecords() {
+            const list = document.getElementById('btl-list');
+            list.innerHTML = '';
+            
+            const monthsArray = Object.keys(allBtl).sort((a,b) => b.localeCompare(a)); // מהחדש לישן
+            
+            if (monthsArray.length === 0) {
+                list.innerHTML = '<div style="color:white; text-align:center;">אין מעקבים שמורים.</div>';
+                return;
+            }
+            
+            monthsArray.forEach(m => {
+                const rec = allBtl[m];
+                const [year, monthNum] = m.split('-');
+                const displayMonth = `${monthNum}/${year}`;
+                
+                const statusColor = rec.paid ? '#059669' : '#ef4444';
+                const statusText = rec.paid ? '✅ שולם' : '❌ לא שולם';
+                const linkBtn = rec.link ? `<a href="${rec.link}" target="_blank" style="background:var(--primary); color:white; padding:6px 12px; border-radius:8px; text-decoration:none; font-size:0.85rem; font-weight:800;">📄 אישור</a>` : '';
+                
+                list.innerHTML += `
+                    <div class="shift-card">
+                        <div>
+                            <div class="shift-date">חודש ${displayMonth}</div>
+                            <div style="font-weight:800; color:${statusColor}; font-size:0.95rem;">${statusText}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${linkBtn}
+                            <button onclick="deleteBtlRecord('${m}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
+                        </div>
                     </div>
                 `;
             });
@@ -471,7 +643,7 @@
 
             filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
                 const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
-                text += `• ${formattedDate}: ${s.start}-${s.end} (${s.hours} שעות)\n`;
+                text += `• ${formattedDate}: ${s.start}-${s.end} (${s.hours.toFixed(1)} שעות)\n`;
             });
 
             return text;
