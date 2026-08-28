@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>שעון נוכחות - משק בית</title>
+    <title>מערכת שעון נוכחות</title>
+    <!-- הגדרות PWA ואייקון -->
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
     
     <style>
+        /* --- משתני צבע ועיצוב --- */
         :root {
             --primary: #4f46e5;
             --primary-dark: #3730a3;
@@ -21,13 +23,7 @@
             --white: #ffffff;
         }
 
-        * {
-            box-sizing: border-box;
-            font-family: 'Heebo', sans-serif;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; font-family: 'Heebo', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         body {
             background: var(--bg-gradient);
@@ -39,283 +35,171 @@
             overflow: hidden;
         }
 
-        /* --- תצוגת לוגין (לובי) --- */
-        #login-view {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 20px;
-            text-align: center;
-            color: var(--white);
-        }
-        .login-card {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            padding: 30px 25px;
-            border-radius: 24px;
-            width: 100%;
-            max-width: 360px;
-            box-shadow: var(--glass-shadow);
-        }
-        .login-card h1 { font-size: 1.8rem; margin-bottom: 10px; font-weight: 800; }
-        .login-card p { font-size: 1rem; opacity: 0.9; margin-bottom: 25px; }
-
-        /* --- תצוגת אפליקציה --- */
-        #app-view {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        header {
-            background: rgba(30, 27, 75, 0.85);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            color: var(--white);
-            padding: 15px;
-            text-align: center;
-            padding-top: max(15px, env(safe-area-inset-top));
-        }
-        .header-title-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-        header h1 { font-size: 1.3rem; font-weight: 800; margin: 0; }
-        .header-icon {
-            width: 35px; height: 35px; 
-            border-radius: 10px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-            object-fit: cover;
-            border: 1px solid rgba(255,255,255,0.5);
-        }
-        
-        .emp-info-bar {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            padding: 8px 12px;
-            margin-top: 15px;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-around;
-            font-weight: 600;
-        }
-
-        main {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px 15px 100px;
-        }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
+        /* --- רכיבי UI כלליים --- */
         .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
+            background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow); border-radius: 20px; padding: 20px; margin-bottom: 20px;
         }
 
         h2 { color: var(--primary-dark); font-size: 1.3rem; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid #e0e7ff; padding-bottom: 8px; }
-
         label { display: block; font-size: 0.9rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 6px; }
         input, select {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid #c7d2fe;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            background: #fff;
+            width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #c7d2fe; font-size: 1rem; font-weight: 600; margin-bottom: 15px; background: #fff;
         }
-        input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
-        
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
         input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); cursor: pointer; margin: 0 0 0 10px; }
         .checkbox-label { display: flex; align-items: center; color: var(--primary-dark); font-weight: 800; margin-bottom: 15px; cursor: pointer; }
 
-        .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-        .btn-primary {
-            width: 100%;
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-            transition: transform 0.1s;
-        }
+        .btn-primary { width: 100%; background: var(--primary); color: var(--white); border: none; padding: 14px; border-radius: 12px; font-size: 1.1rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); transition: transform 0.1s; margin-bottom: 10px; }
         .btn-primary:active { transform: scale(0.97); }
-
         .btn-success { background: #059669; }
-        .btn-whatsapp { background: #25D366; color: white; margin-bottom: 10px; }
-        .btn-email { background: #2563eb; color: white; }
+        .btn-danger { background: #ef4444; }
+        .btn-secondary { background: #64748b; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-excel { background: #107c41; color: white; }
 
-        /* כרטיסיות */
+        /* --- כרטיסיות מידע --- */
         .shift-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-right: 5px solid var(--primary);
-            padding: 14px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            background: rgba(255, 255, 255, 0.9); border-right: 5px solid var(--primary); padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .shift-date { font-weight: 800; font-size: 1.05rem; color: var(--primary-dark); }
         .shift-details { font-size: 0.9rem; color: #4b5563; }
         .shift-pay { font-weight: 800; color: #059669; font-size: 1rem; }
 
-        nav {
-            position: fixed;
-            bottom: 0; width: 100%;
-            background: rgba(30, 27, 75, 0.9);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
-            z-index: 100;
-        }
-        .nav-btn {
-            background: none; border: none; color: #a5b4fc;
-            font-size: 0.75rem; font-weight: 800;
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            cursor: pointer; flex-grow: 1;
-        }
+        /* --- מבנה ראשי ותצוגות --- */
+        #login-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center; color: var(--white); }
+        .login-card { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); padding: 30px 25px; border-radius: 24px; width: 100%; max-width: 360px; box-shadow: var(--glass-shadow); }
+        .login-card h1 { font-size: 1.8rem; margin-bottom: 10px; font-weight: 800; }
+        .login-card p { font-size: 1rem; opacity: 0.9; margin-bottom: 25px; }
+
+        #app-view { display: none; flex-direction: column; height: 100%; }
+        
+        header { background: rgba(30, 27, 75, 0.85); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255, 255, 255, 0.15); color: var(--white); padding: 15px; text-align: center; padding-top: max(15px, env(safe-area-inset-top)); position: relative;}
+        .header-title-container { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        header h1 { font-size: 1.3rem; font-weight: 800; margin: 0; }
+        .header-icon { width: 35px; height: 35px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); object-fit: cover; border: 1px solid rgba(255,255,255,0.5); }
+        .emp-info-bar { background: rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 8px 12px; margin-top: 15px; font-size: 0.9rem; display: flex; justify-content: space-around; font-weight: 600; flex-wrap: wrap; gap: 5px;}
+        .logout-btn { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 15px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 5px 10px; color: white; font-size: 0.85rem; font-weight: 800; cursor: pointer; }
+
+        main { flex-grow: 1; overflow-y: auto; padding: 20px 15px 100px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        nav { position: fixed; bottom: 0; width: 100%; background: rgba(30, 27, 75, 0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.15); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); z-index: 100; }
+        .nav-btn { background: none; border: none; color: #a5b4fc; font-size: 0.75rem; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex-grow: 1; }
         .nav-btn span { font-size: 1.4rem; }
         .nav-btn.active { color: var(--white); }
 
-        .summary-box {
-            background: linear-gradient(135deg, #312e81, #4338ca);
-            color: white;
-            padding: 20px;
-            border-radius: 16px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
+        .summary-box { background: linear-gradient(135deg, #312e81, #4338ca); color: white; padding: 20px; border-radius: 16px; text-align: center; margin-bottom: 20px; }
         .summary-box .big-num { font-size: 2.2rem; font-weight: 800; margin: 5px 0; }
         
-        #install-prompt {
-            position: fixed; bottom: 80px; left: 5%; width: 90%;
-            background: rgba(79, 70, 229, 0.95); backdrop-filter: blur(10px);
-            color: white; padding: 20px; border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 9999;
-            display: none; animation: slideUp 0.5s ease-out; border: 1px solid rgba(255,255,255,0.2);
-        }
-        #install-prompt h3 { margin-bottom: 10px; font-size: 1.2rem; font-weight: 800; display:flex; align-items:center; gap:8px;}
-        #install-prompt p { font-size: 1rem; line-height: 1.4; margin-bottom: 15px; }
-        .install-close-btn { background: white; color: var(--primary); border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
-        @keyframes slideUp { from { transform: translateY(150%); } to { transform: translateY(0); } }
+        /* --- פופאפים ומודאלים --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .modal-content { background: var(--bg-gradient); color: white; padding: 30px 25px; border-radius: 24px; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
+        .modal-content h3 { font-size: 1.5rem; margin-bottom: 15px; font-weight: 800; }
+        .modal-content p { font-size: 1rem; margin-bottom: 20px; opacity: 0.9; }
+
+        .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        
+        /* פאנל ניהול מיוחד */
+        .admin-user-card { background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #10b981;}
     </style>
 </head>
 <body>
-
-    <div id="install-prompt">
-        <h3><span style="font-size: 1.5rem;">📲</span> התקינו את האפליקציה!</h3>
-        <p id="install-instructions">טוען הוראות...</p>
-        <button class="install-close-btn" onclick="dismissInstall()">הבנתי, תודה</button>
-    </div>
 
     <!-- מסך לוגין / לובי -->
     <div id="login-view">
         <div class="login-card">
             <img src="icon.png" alt="לוגו" style="width: 90px; height: 90px; border-radius: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); margin-bottom: 15px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5);" onerror="this.style.display='none'">
-            <h1>מעקב שעות משק בית</h1>
-            <p>הכנס קוד גישה לכניסה למערכת</p>
-            <input type="password" id="pin-input" placeholder="קוד PIN" style="text-align: center; font-size: 1.5rem; letter-spacing: 5px;">
-            <button class="btn-primary" onclick="checkPin()">התחבר</button>
+            <h1>מערכת דיווחי נוכחות</h1>
+            <p>אנא התחבר כדי לגשת למערכת</p>
+            <input type="text" id="login-user" placeholder="שם משתמש" autocapitalize="none" autocomplete="username">
+            <input type="password" id="login-pass" placeholder="סיסמה">
+            <button class="btn-primary" onclick="attemptLogin()">התחבר</button>
+            <p id="login-error" style="color: #fca5a5; margin-top: 15px; display: none; font-weight: 600;"></p>
+        </div>
+    </div>
+
+    <!-- מודאל החלפת סיסמה ראשונית חובה -->
+    <div id="force-password-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>🔒 אבטחת מידע</h3>
+            <p>זיהינו שאתה משתמש בסיסמה הזמנית (1234). עליך לבחור סיסמה חדשה לפני שתוכל להמשיך.</p>
+            <p style="font-size: 0.85rem; color: #a5b4fc; text-align: right; padding-right: 5px;">* לפחות 6 תווים<br>* חייב להכיל לפחות אחד מהסימנים: @, #, $, !, %, &</p>
+            <input type="password" id="new-pass-1" placeholder="סיסמה חדשה">
+            <input type="password" id="new-pass-2" placeholder="אימות סיסמה חדשה">
+            <button class="btn-primary" onclick="forcePasswordChange()">שמור והיכנס</button>
+            <p id="pass-error" style="color: #fca5a5; margin-top: 10px; font-weight: 600; display: none;"></p>
         </div>
     </div>
 
     <!-- תצוגת האפליקציה -->
     <div id="app-view">
         <header>
+            <button class="logout-btn" onclick="logout()">התנתק</button>
             <div class="header-title-container">
                 <img src="icon.png" alt="לוגו" class="header-icon" onerror="this.style.display='none'">
-                <h1>שעון נוכחות - משק בית</h1>
+                <h1>מערכת נוכחות</h1>
             </div>
             <div class="emp-info-bar">
                 <span id="hdr-name">שם: ...</span>
                 <span id="hdr-id">ת"ז: ...</span>
-                <span id="hdr-rate">תעריף: ... ₪/שעה</span>
+                <span id="hdr-rate">תעריף: ₪0/שעה</span>
             </div>
         </header>
 
         <main>
             <!-- בלשונית 1: דיווח שעות -->
-            <div id="tab-log" class="tab-content active">
+            <div id="tab-log" class="tab-content">
                 <div class="glass-panel">
                     <h2>⏱️ דיווח משמרת חדשה</h2>
-                    
                     <label>תאריך:</label>
                     <input type="date" id="shift-date">
-
                     <div class="time-row">
-                        <div>
-                            <label>שעת התחלה:</label>
-                            <input type="time" id="shift-start" value="08:00">
-                        </div>
-                        <div>
-                            <label>שעת סיום:</label>
-                            <input type="time" id="shift-end" value="12:00">
-                        </div>
+                        <div><label>שעת התחלה:</label><input type="time" id="shift-start" value="08:00"></div>
+                        <div><label>שעת סיום:</label><input type="time" id="shift-end" value="12:00"></div>
                     </div>
-
                     <button class="btn-primary" onclick="addShift()">שמור משמרת</button>
                 </div>
-
                 <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">📋 משמרות אחרונות</h3>
                 <div id="recent-shifts-list"></div>
             </div>
 
-            <!-- בלשונית 2: דוח חודשי -->
+            <!-- בלשונית 2: דוחות מתקדמים וייצוא -->
             <div id="tab-report" class="tab-content">
                 <div class="glass-panel">
-                    <h2>📊 דוח חודשי</h2>
-                    <label>בחר חודש ושנה:</label>
-                    <input type="month" id="report-month" onchange="renderMonthlyReport()">
+                    <h2>📊 דוחות וסיכומים</h2>
+                    <label>מתאריך (חודש ושנה):</label>
+                    <input type="month" id="report-start" onchange="renderReport()">
+                    <label>עד תאריך (חודש ושנה):</label>
+                    <input type="month" id="report-end" onchange="renderReport()">
 
                     <div class="summary-box">
-                        <div>סך הכל שעות בחודש:</div>
+                        <div>סך הכל שעות לתקופה:</div>
                         <div class="big-num" id="rpt-total-hours">0 שעות</div>
                         <div style="margin-top: 10px; font-size: 1.1rem; font-weight: 700;" id="rpt-total-pay">סך הכל לתשלום: ₪0</div>
                     </div>
 
-                    <button class="btn-primary btn-whatsapp" onclick="exportWhatsApp()">📤 שתף דוח בוואטסאפ</button>
-                    <button class="btn-primary btn-email" onclick="exportEmail()">✉️ שלח דוח במייל</button>
+                    <button class="btn-primary btn-excel" onclick="exportToExcel()">⬇️ הורד דוח לאקסל (CSV)</button>
+                    <button class="btn-primary btn-whatsapp" onclick="exportWhatsApp()">📤 שתף בוואטסאפ</button>
                 </div>
-
-                <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">פירוט ימים בחודש</h3>
-                <div id="monthly-shifts-list"></div>
+                <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">פירוט משמרות לתקופה</h3>
+                <div id="report-shifts-list"></div>
             </div>
 
             <!-- בלשונית 3: ביטוח לאומי -->
             <div id="tab-btl" class="tab-content">
                 <div class="glass-panel">
-                    <h2>🛡️ מעקב ביטוח לאומי</h2>
-                    <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--primary-dark);">כאן תוכלו לעקוב אחרי החודשים שעליהם דיווחתם ולצרף אישור תשלום.</p>
+                    <h2>🛡️ ביטוח לאומי</h2>
+                    <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--primary-dark);">מעקב אחרי חודשי הדיווח ששולמו.</p>
                     <label>בחר חודש ושנה:</label>
                     <input type="month" id="btl-month">
-                    <label class="checkbox-label"><input type="checkbox" id="btl-paid"> האם שולם דיווח לחודש זה?</label>
-                    <label>קישור לאישור תשלום (Drive / Dropbox):</label>
+                    <label class="checkbox-label"><input type="checkbox" id="btl-paid"> שולם דיווח לחודש זה</label>
+                    <label>קישור לאישור תשלום (אופציונלי):</label>
                     <input type="text" id="btl-link" dir="ltr" placeholder="https://...">
-                    <button class="btn-primary" onclick="saveBtlRecord()">💾 הוסף/עדכן דיווח</button>
+                    <button class="btn-primary" onclick="saveBtlRecord()">💾 שמור דיווח</button>
                 </div>
                 <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">חודשים במעקב</h3>
                 <div id="btl-list"></div>
@@ -324,25 +208,48 @@
             <!-- בלשונית 4: הגדרות עובד -->
             <div id="tab-settings" class="tab-content">
                 <div class="glass-panel">
-                    <h2>⚙️ הגדרות עובד/ת ושכר</h2>
-                    <label>שם העובד/ת:</label>
-                    <input type="text" id="set-emp-name" placeholder="שם מלא">
-                    <label>תעודת זהות (לביטוח לאומי):</label>
-                    <input type="text" id="set-emp-id" placeholder="מספר תעודת זהות">
-                    <label>תעריף שעתי (₪ לשעה):</label>
-                    <input type="number" id="set-emp-rate" placeholder="למשל: 70">
-                    <label>קוד גישה לאפליקציה (PIN):</label>
-                    <input type="text" id="set-app-pin" placeholder="למשל: 1981">
-                    <button class="btn-primary btn-success" onclick="saveSettings()">💾 שמור הגדרות</button>
+                    <h2>⚙️ הגדרות והעדפות</h2>
+                    <label>שם מלא:</label>
+                    <input type="text" id="set-emp-name">
+                    <label>תעודת זהות:</label>
+                    <input type="text" id="set-emp-id">
+                    <label>תעריף שעתי (₪):</label>
+                    <input type="number" id="set-emp-rate">
+                    <button class="btn-primary btn-success" onclick="saveSettings()">💾 שמור שינויים</button>
+                </div>
+                <div class="glass-panel" style="background: rgba(255, 255, 255, 0.4);">
+                    <h3 style="color: var(--primary-dark); font-size: 1.1rem; margin-bottom: 15px; font-weight: 800;">החלפת סיסמה לאפליקציה</h3>
+                    <input type="password" id="set-pass-old" placeholder="סיסמה נוכחית">
+                    <input type="password" id="set-pass-new" placeholder="סיסמה חדשה (6 תווים וסימן מיוחד)">
+                    <button class="btn-primary" onclick="changePasswordFromSettings()">שנה סיסמה</button>
+                </div>
+            </div>
+
+            <!-- בלשונית 5: פאנל ניהול (Admin Only) -->
+            <div id="tab-admin" class="tab-content">
+                <div class="glass-panel" style="border: 2px solid #10b981;">
+                    <h2 style="color: #059669;">👑 פאנל ניהול (מנהל)</h2>
+                    <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--text-dark); font-weight: 600;">
+                        יצירה וניהול של משתמשים במערכת. סיסמת ברירת מחדל למשתמש חדש היא <strong>1234</strong>.
+                    </p>
+                    <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                        <h3 style="font-size: 1rem; margin-bottom: 10px; color: var(--primary-dark); font-weight: 800;">הוספת משתמש חדש</h3>
+                        <input type="text" id="admin-new-user" placeholder="שם משתמש (באנגלית/מספרים)">
+                        <button class="btn-primary btn-success" onclick="adminCreateUser()">➕ צור משתמש</button>
+                    </div>
+
+                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--primary-dark); font-weight: 800;">משתמשים קיימים</h3>
+                    <div id="admin-users-list"></div>
                 </div>
             </div>
         </main>
 
-        <nav>
-            <button class="nav-btn active" onclick="switchTab('log', this)"><span>⏱️</span>שעות</button>
-            <button class="nav-btn" onclick="switchTab('report', this)"><span>📊</span>דוחות</button>
-            <button class="nav-btn" onclick="switchTab('btl', this)"><span>🛡️</span>ב. לאומי</button>
-            <button class="nav-btn" onclick="switchTab('settings', this)"><span>⚙️</span>הגדרות</button>
+        <nav id="main-nav">
+            <button class="nav-btn" onclick="switchTab('log', this)" id="nav-log"><span>⏱️</span>שעות</button>
+            <button class="nav-btn" onclick="switchTab('report', this)" id="nav-report"><span>📊</span>דוחות</button>
+            <button class="nav-btn" onclick="switchTab('btl', this)" id="nav-btl"><span>🛡️</span>ב. לאומי</button>
+            <button class="nav-btn" onclick="switchTab('settings', this)" id="nav-settings"><span>⚙️</span>הגדרות</button>
+            <button class="nav-btn" onclick="switchTab('admin', this)" id="nav-admin" style="display:none; color: #10b981;"><span>👑</span>ניהול</button>
         </nav>
     </div>
 
@@ -351,54 +258,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
     <script>
-        // --- מלכודת לחצן חזור (Back Button) ---
-        history.pushState(null, null, location.href);
-        window.addEventListener('popstate', function () {
-            if (confirm('האם אתה בטוח שברצונך לעזוב את האפליקציה?')) {
-                // המשתמש לחץ 'כן'
-                window.close(); // מנסה לסגור (עובד בעיקר בחלונות PWA או חלונות שנפתחו ע"י קוד)
-                history.back(); // אם הדפדפן חוסם סגירה, הוא פשוט יחזור אחורה
-            } else {
-                // המשתמש לחץ 'ביטול', נחזיר את המלכודת
-                history.pushState(null, null, location.href);
-            }
-        });
-
-        // --- האזנה למקש Enter במסך הלוגין ---
-        document.getElementById('pin-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                checkPin();
-                // הסתרת המקלדת בסלולר לאחר לחיצה
-                this.blur();
-            }
-        });
-
-        function checkInstallPrompt() {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
-            if (isStandalone) return; 
-
-            if (localStorage.getItem('install_prompt_dismissed_cleaner')) return;
-
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            const isAndroid = /Android/.test(navigator.userAgent);
-
-            const promptEl = document.getElementById('install-prompt');
-            const textEl = document.getElementById('install-instructions');
-
-            if (isIOS) {
-                textEl.innerHTML = "כדי להתקין את האפליקציה למסך הבית (עם האייקון), לחצו על כפתור <strong>השיתוף</strong> (⍐) למטה, ואז בחרו ב- <strong>הוסף למסך הבית</strong> (➕).";
-                promptEl.style.display = 'block';
-            } else if (isAndroid) {
-                textEl.innerHTML = "כדי להתקין את האפליקציה למסך הבית (עם האייקון), לחצו על <strong>שלוש הנקודות</strong> (⋮) למעלה, ואז בחרו ב- <strong>הוסף למסך הבית</strong>.";
-                promptEl.style.display = 'block';
-            }
-        }
-        function dismissInstall() {
-            document.getElementById('install-prompt').style.display = 'none';
-            localStorage.setItem('install_prompt_dismissed_cleaner', 'true');
-        }
-        setTimeout(checkInstallPrompt, 2000);
-
+        // --- 1. FIREBASE SETUP & INIT ---
+        // REPLACE THE CONFIG BELOW WITH YOUR SPECIFIC FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAKlewYVxd7bWRRV-M8hs_YZKuYp1V0TQM",
             authDomain: "family-travel-app-d4710.firebaseapp.com",
@@ -409,57 +270,146 @@
             appId: "1:843954095365:web:d9687120c3987d3a7aa36c"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database().ref('CleanerApp');
+        const rootDb = firebase.database().ref('MultiTenantCleanerApp/Users');
 
-        let appSettings = { empName: 'ישראלה ישראלי', empId: '000000000', empRate: 70, pin: '1981' };
-        let allShifts = [];
-        let allBtl = {};
+        // State Variables
+        let currentUser = null;
+        let userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
+        let userRef = null;
 
-        document.getElementById('shift-date').valueAsDate = new Date();
-        const currentMonthStr = new Date().toISOString().slice(0,7);
-        document.getElementById('report-month').value = currentMonthStr;
-        document.getElementById('btl-month').value = currentMonthStr;
+        // --- 2. AUTHENTICATION & SECURITY ---
 
-        function checkPin() {
-            const inputPin = document.getElementById('pin-input').value.trim();
-            if (inputPin === appSettings.pin) {
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('app-view').style.display = 'flex';
+        // Basic Hashing function for client-side (Not for high-security banking, but good enough for this scope)
+        async function hashPassword(password) {
+            const msgBuffer = new TextEncoder().encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function validatePasswordStrength(pass) {
+            if (pass.length < 6) return false;
+            const specialChars = /[@#\$%&!]/;
+            return specialChars.test(pass);
+        }
+
+        async function attemptLogin() {
+            const usernameInput = document.getElementById('login-user').value.trim();
+            const passwordInput = document.getElementById('login-pass').value.trim();
+            const errEl = document.getElementById('login-error');
+
+            if(!usernameInput || !passwordInput) {
+                errEl.innerText = "יש להזין שם משתמש וסיסמה.";
+                errEl.style.display = 'block';
+                return;
+            }
+
+            const username = usernameInput.toLowerCase();
+
+            // Setup initial Admin if it doesn't exist
+            if (username === 'admin' && passwordInput === '021181@') {
+                const adminHash = await hashPassword('021181@');
+                const adminSnapshot = await rootDb.child('admin').once('value');
+                if(!adminSnapshot.exists()) {
+                    await rootDb.child('admin/auth').set({ passHash: adminHash, mustChange: false });
+                }
+            }
+
+            rootDb.child(username).once('value', async (snapshot) => {
+                if (!snapshot.exists()) {
+                    errEl.innerText = "משתמש לא קיים.";
+                    errEl.style.display = 'block';
+                    return;
+                }
+
+                const userDoc = snapshot.val();
+                const hashAttempt = await hashPassword(passwordInput);
+
+                if (userDoc.auth && userDoc.auth.passHash === hashAttempt) {
+                    errEl.style.display = 'none';
+                    loginSuccess(username, userDoc);
+                } else {
+                    errEl.innerText = "סיסמה שגויה.";
+                    errEl.style.display = 'block';
+                }
+            });
+        }
+
+        function loginSuccess(username, data) {
+            currentUser = username;
+            userData = data;
+            userRef = rootDb.child(username);
+
+            document.getElementById('login-view').style.display = 'none';
+
+            // Check if must change password (usually if pass is '1234')
+            if (data.auth && data.auth.mustChange) {
+                document.getElementById('force-password-modal').style.display = 'flex';
             } else {
-                alert('קוד PIN שגוי.');
+                startAppSession();
             }
         }
 
-        db.on('value', snap => {
-            const data = snap.val() || {};
-            if (data.settings) {
-                appSettings = { ...appSettings, ...data.settings };
-            }
-            if (data.shifts) {
-                allShifts = Object.keys(data.shifts).map(key => ({ id: key, ...data.shifts[key] }));
-            } else {
-                allShifts = [];
-            }
-            if (data.btl) {
-                allBtl = data.btl;
-            } else {
-                allBtl = {};
-            }
-            updateHeaderUI();
-            renderRecentShifts();
-            renderMonthlyReport();
-            renderBtlRecords();
-        });
+        async function forcePasswordChange() {
+            const p1 = document.getElementById('new-pass-1').value;
+            const p2 = document.getElementById('new-pass-2').value;
+            const errEl = document.getElementById('pass-error');
 
-        function updateHeaderUI() {
-            document.getElementById('hdr-name').innerText = `שם: ${appSettings.empName}`;
-            document.getElementById('hdr-id').innerText = `ת"ז: ${appSettings.empId}`;
-            document.getElementById('hdr-rate').innerText = `תעריף: ₪${appSettings.empRate}/שעה`;
+            if (p1 !== p2) {
+                errEl.innerText = "הסיסמאות אינן תואמות."; errEl.style.display = 'block'; return;
+            }
+            if (!validatePasswordStrength(p1)) {
+                errEl.innerText = "הסיסמה חלשה מדי. ודא שיש 6 תווים וסימן מיוחד."; errEl.style.display = 'block'; return;
+            }
 
-            document.getElementById('set-emp-name').value = appSettings.empName;
-            document.getElementById('set-emp-id').value = appSettings.empId;
-            document.getElementById('set-emp-rate').value = appSettings.empRate;
-            document.getElementById('set-app-pin').value = appSettings.pin;
+            const newHash = await hashPassword(p1);
+            await userRef.child('auth').update({ passHash: newHash, mustChange: false });
+            
+            document.getElementById('force-password-modal').style.display = 'none';
+            startAppSession();
+        }
+
+        function logout() {
+            if(userRef) userRef.off(); // Stop listening
+            currentUser = null;
+            userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            document.getElementById('app-view').style.display = 'none';
+            document.getElementById('login-view').style.display = 'flex';
+        }
+
+        // --- 3. APP INITIALIZATION & DATA LISTENING ---
+        function startAppSession() {
+            document.getElementById('app-view').style.display = 'flex';
+            
+            // Set Admin specific UI
+            if (currentUser === 'admin') {
+                document.getElementById('nav-admin').style.display = 'flex';
+            } else {
+                document.getElementById('nav-admin').style.display = 'none';
+            }
+
+            // Listen to current user data
+            userRef.on('value', snap => {
+                userData = snap.val() || { settings: {}, shifts: {}, btl: {}, auth: {} };
+                if(!userData.settings) userData.settings = { empName: '', empId: '', empRate: 0 };
+                if(!userData.shifts) userData.shifts = {};
+                if(!userData.btl) userData.btl = {};
+
+                updateUI();
+            });
+
+            // Set default dates for inputs
+            const today = new Date();
+            document.getElementById('shift-date').valueAsDate = today;
+            const currentMonthStr = today.toISOString().slice(0,7);
+            document.getElementById('report-start').value = currentMonthStr;
+            document.getElementById('report-end').value = currentMonthStr;
+            document.getElementById('btl-month').value = currentMonthStr;
+
+            switchTab('log', document.getElementById('nav-log'));
+            if(currentUser === 'admin') loadAdminPanel();
         }
 
         function switchTab(tabId, btn) {
@@ -467,201 +417,274 @@
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
             if (btn) btn.classList.add('active');
+            document.querySelector('main').scrollTop = 0;
+            
+            if(tabId === 'report') renderReport();
         }
 
-        function saveSettings() {
-            const newSettings = {
-                empName: document.getElementById('set-emp-name').value.trim(),
-                empId: document.getElementById('set-emp-id').value.trim(),
-                empRate: parseFloat(document.getElementById('set-emp-rate').value) || 0,
-                pin: document.getElementById('set-app-pin').value.trim() || '1981'
-            };
-            db.child('settings').set(newSettings).then(() => alert('ההגדרות נשמרו בהצלחה!'));
+        function updateUI() {
+            const s = userData.settings;
+            document.getElementById('hdr-name').innerText = `שם: ${s.empName || 'לא הוגדר'}`;
+            document.getElementById('hdr-id').innerText = `ת"ז: ${s.empId || 'לא הוגדר'}`;
+            document.getElementById('hdr-rate').innerText = `תעריף: ₪${s.empRate || 0}/שעה`;
+
+            document.getElementById('set-emp-name').value = s.empName || '';
+            document.getElementById('set-emp-id').value = s.empId || '';
+            document.getElementById('set-emp-rate').value = s.empRate || '';
+
+            renderRecentShifts();
+            if(document.getElementById('tab-report').classList.contains('active')) renderReport();
+            renderBtlRecords();
         }
+
+        // --- 4. CORE FEATURES (Shifts, Reports, Settings) ---
+        function timeToMinutes(tStr) { const [h, m] = tStr.split(':').map(Number); return h * 60 + m; }
 
         function addShift() {
             const date = document.getElementById('shift-date').value;
             const start = document.getElementById('shift-start').value;
             const end = document.getElementById('shift-end').value;
 
-            if (!date || !start || !end) return alert('נא למלא תאריך, שעת התחלה ושעת סיום.');
+            if (!date || !start || !end) return alert('נא למלא את כל השדות.');
+            const sMins = timeToMinutes(start); const eMins = timeToMinutes(end);
+            if (eMins <= sMins) return alert('שעת הסיום חייבת להיות מאוחרת מההתחלה.');
 
-            const startMinutes = timeToMinutes(start);
-            const endMinutes = timeToMinutes(end);
-
-            if (endMinutes <= startMinutes) return alert('שעת הסיום חייבת להיות מאוחרת משעת ההתחלה.');
-
-            const hours = (endMinutes - startMinutes) / 60;
-            const newShift = { date, start, end, hours };
-
-            db.child('shifts').push(newShift).then(() => {
-                alert('המשמרת נשמרה בהצלחה!');
-            });
+            const hours = (eMins - sMins) / 60;
+            userRef.child('shifts').push({ date, start, end, hours }).then(() => alert('המשמרת נשמרה!'));
         }
 
         function deleteShift(id) {
-            if (confirm('האם למחוק משמרת זו?')) {
-                db.child('shifts').child(id).remove();
-            }
-        }
-
-        function timeToMinutes(timeStr) {
-            const [h, m] = timeStr.split(':').map(Number);
-            return h * 60 + m;
+            if(confirm('האם למחוק משמרת זו?')) userRef.child('shifts').child(id).remove();
         }
 
         function renderRecentShifts() {
             const list = document.getElementById('recent-shifts-list');
             list.innerHTML = '';
-            const sorted = [...allShifts].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            const shiftsArr = Object.keys(userData.shifts).map(k => ({id: k, ...userData.shifts[k]}));
+            const sorted = shiftsArr.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
-            if (sorted.length === 0) {
-                list.innerHTML = '<div style="color:white; text-align:center;">אין משמרות תועדו עדיין.</div>';
-                return;
-            }
+            if(sorted.length === 0) { list.innerHTML = '<div style="color:white; text-align:center;">אין משמרות כרגע.</div>'; return; }
 
+            const rate = userData.settings.empRate || 0;
             sorted.forEach(s => {
-                const pay = s.hours * appSettings.empRate;
-                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const pay = s.hours * rate;
+                const fDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
                 list.innerHTML += `
                     <div class="shift-card">
-                        <div>
-                            <div class="shift-date">${formattedDate}</div>
-                            <div class="shift-details">${s.start} - ${s.end} (${s.hours.toFixed(1)} שעות)</div>
-                        </div>
+                        <div><div class="shift-date">${fDate}</div><div class="shift-details">${s.start}-${s.end} (${s.hours.toFixed(1)} שעות)</div></div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <div class="shift-pay">₪${pay.toFixed(0)}</div>
-                            <button onclick="deleteShift('${s.id}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
+                            <button onclick="deleteShift('${s.id}')" style="background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer;">🗑️</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
-        function renderMonthlyReport() {
-            const selectedMonth = document.getElementById('report-month').value; 
-            const filtered = allShifts.filter(s => s.date.startsWith(selectedMonth));
+        function saveSettings() {
+            const newSet = {
+                empName: document.getElementById('set-emp-name').value.trim(),
+                empId: document.getElementById('set-emp-id').value.trim(),
+                empRate: parseFloat(document.getElementById('set-emp-rate').value) || 0
+            };
+            userRef.child('settings').set(newSet).then(() => alert('הגדרות נשמרו.'));
+        }
 
+        async function changePasswordFromSettings() {
+            const oldP = document.getElementById('set-pass-old').value;
+            const newP = document.getElementById('set-pass-new').value;
+            
+            const oldHash = await hashPassword(oldP);
+            if (userData.auth.passHash !== oldHash) return alert('הסיסמה הנוכחית שגויה.');
+            if (!validatePasswordStrength(newP)) return alert('הסיסמה החדשה חלשה מדי.');
+
+            const newHash = await hashPassword(newP);
+            userRef.child('auth').update({ passHash: newHash }).then(() => {
+                alert('הסיסמה הוחלפה בהצלחה.');
+                document.getElementById('set-pass-old').value = ''; document.getElementById('set-pass-new').value = '';
+            });
+        }
+
+        // --- 5. ADVANCED REPORTS & EXPORT ---
+        function getFilteredShifts() {
+            const startVal = document.getElementById('report-start').value;
+            const endVal = document.getElementById('report-end').value;
+            const shiftsArr = Object.keys(userData.shifts).map(k => ({id: k, ...userData.shifts[k]}));
+            
+            return shiftsArr.filter(s => {
+                const shiftMonth = s.date.substring(0,7);
+                return shiftMonth >= startVal && shiftMonth <= endVal;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date));
+        }
+
+        function renderReport() {
+            const filtered = getFilteredShifts();
+            const rate = userData.settings.empRate || 0;
+            
             let totalHours = 0;
             filtered.forEach(s => totalHours += s.hours);
-            const totalPay = totalHours * appSettings.empRate;
+            const totalPay = totalHours * rate;
 
             document.getElementById('rpt-total-hours').innerText = `${totalHours.toFixed(1)} שעות`;
             document.getElementById('rpt-total-pay').innerText = `סך הכל לתשלום: ₪${totalPay.toFixed(0)}`;
 
-            const list = document.getElementById('monthly-shifts-list');
+            const list = document.getElementById('report-shifts-list');
             list.innerHTML = '';
+            if(filtered.length === 0) list.innerHTML = '<div style="color:white; text-align:center;">אין נתונים לתקופה זו.</div>';
 
-            filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
-                const pay = s.hours * appSettings.empRate;
-                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+            filtered.forEach(s => {
+                const pay = s.hours * rate;
+                const fDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
                 list.innerHTML += `
-                    <div class="shift-card">
-                        <div>
-                            <div class="shift-date">${formattedDate}</div>
-                            <div class="shift-details">${s.start} - ${s.end} (${s.hours.toFixed(1)} שעות)</div>
-                        </div>
+                    <div class="shift-card" style="padding: 10px 14px;">
+                        <div><div class="shift-date" style="font-size:1rem;">${fDate}</div><div class="shift-details">${s.start}-${s.end} (${s.hours.toFixed(1)} ש')</div></div>
                         <div class="shift-pay">₪${pay.toFixed(0)}</div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
+        function generateExportText() {
+            const filtered = getFilteredShifts();
+            const rate = userData.settings.empRate || 0;
+            let totalHours = 0; filtered.forEach(s => totalHours += s.hours);
+            const startM = document.getElementById('report-start').value;
+            const endM = document.getElementById('report-end').value;
+            const period = startM === endM ? startM : `מ-${startM} עד ${endM}`;
+
+            let txt = `📋 *דוח נוכחות - משק בית*\nעובד: ${userData.settings.empName || '-'}\nתקופה: ${period}\nסה"כ שעות: ${totalHours.toFixed(1)}\nסה"כ לתשלום: ₪${(totalHours * rate).toFixed(0)}\n\n*פירוט:*\n`;
+            filtered.forEach(s => {
+                const fDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+                txt += `• ${fDate}: ${s.start}-${s.end} (${s.hours.toFixed(1)} ש')\n`;
+            });
+            return txt;
+        }
+
+        function exportWhatsApp() { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(generateExportText())}`, '_blank'); }
+
+        // ייצוא אקסל אמיתי כקובץ CSV
+        function exportToExcel() {
+            const filtered = getFilteredShifts();
+            const rate = userData.settings.empRate || 0;
+            
+            // כותרות ה-CSV (כולל BOM כדי שאקסל יקרא עברית נכון)
+            let csvContent = '\uFEFF'; 
+            csvContent += "תאריך,שעת התחלה,שעת סיום,סהכ שעות,תעריף,שכר למשמרת\n";
+            
+            let tHours = 0;
+            filtered.forEach(s => {
+                const fDate = new Date(s.date).toLocaleDateString('he-IL');
+                const pay = s.hours * rate;
+                tHours += s.hours;
+                csvContent += `${fDate},${s.start},${s.end},${s.hours.toFixed(2)},${rate},${pay.toFixed(2)}\n`;
+            });
+            
+            csvContent += `\nסהכ תקופה,,,,${tHours.toFixed(2)},${(tHours*rate).toFixed(2)}\n`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `report_${document.getElementById('report-start').value}_to_${document.getElementById('report-end').value}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- 6. BTL (ביטוח לאומי) ---
         function saveBtlRecord() {
-            const month = document.getElementById('btl-month').value;
-            const paid = document.getElementById('btl-paid').checked;
-            const link = document.getElementById('btl-link').value.trim();
-            
-            if (!month) return alert('יש לבחור חודש ושנה.');
-            
-            db.child('btl').child(month).set({ paid, link }).then(() => {
-                alert('הסטטוס נשמר בהצלחה!');
-                document.getElementById('btl-link').value = '';
-                document.getElementById('btl-paid').checked = false;
+            const m = document.getElementById('btl-month').value;
+            const p = document.getElementById('btl-paid').checked;
+            const l = document.getElementById('btl-link').value.trim();
+            if (!m) return alert('חובה לבחור חודש.');
+            userRef.child('btl').child(m).set({ paid: p, link: l }).then(() => {
+                alert('שומר בהצלחה.'); document.getElementById('btl-link').value = ''; document.getElementById('btl-paid').checked = false;
             });
         }
-
-        function deleteBtlRecord(month) {
-            if(confirm('האם למחוק רישום זה?')) {
-                db.child('btl').child(month).remove();
-            }
-        }
-
+        function deleteBtlRecord(m) { if(confirm('למחוק רישום ביטוח לאומי זה?')) userRef.child('btl').child(m).remove(); }
         function renderBtlRecords() {
-            const list = document.getElementById('btl-list');
-            list.innerHTML = '';
-            
-            const monthsArray = Object.keys(allBtl).sort((a,b) => b.localeCompare(a)); 
-            
-            if (monthsArray.length === 0) {
-                list.innerHTML = '<div style="color:white; text-align:center;">אין מעקבים שמורים.</div>';
-                return;
-            }
-            
-            monthsArray.forEach(m => {
-                const rec = allBtl[m];
-                const [year, monthNum] = m.split('-');
-                const displayMonth = `${monthNum}/${year}`;
-                
-                const statusColor = rec.paid ? '#059669' : '#ef4444';
-                const statusText = rec.paid ? '✅ שולם' : '❌ לא שולם';
-                const linkBtn = rec.link ? `<a href="${rec.link}" target="_blank" style="background:var(--primary); color:white; padding:6px 12px; border-radius:8px; text-decoration:none; font-size:0.85rem; font-weight:800;">📄 אישור</a>` : '';
-                
+            const list = document.getElementById('btl-list'); list.innerHTML = '';
+            const mArr = Object.keys(userData.btl).sort((a,b) => b.localeCompare(a));
+            if(mArr.length === 0) { list.innerHTML = '<div style="color:white; text-align:center;">אין מעקבים שמורים.</div>'; return; }
+            mArr.forEach(m => {
+                const rec = userData.btl[m];
+                const displayM = `${m.split('-')[1]}/${m.split('-')[0]}`;
+                const clr = rec.paid ? '#059669' : '#ef4444';
+                const txt = rec.paid ? '✅ שולם' : '❌ לא שולם';
+                const linkBtn = rec.link ? `<a href="${rec.link}" target="_blank" style="background:var(--primary); color:white; padding:6px 12px; border-radius:8px; text-decoration:none; font-size:0.85rem;">📄 אישור</a>` : '';
                 list.innerHTML += `
                     <div class="shift-card">
-                        <div>
-                            <div class="shift-date">חודש ${displayMonth}</div>
-                            <div style="font-weight:800; color:${statusColor}; font-size:0.95rem;">${statusText}</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            ${linkBtn}
-                            <button onclick="deleteBtlRecord('${m}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button>
-                        </div>
-                    </div>
-                `;
+                        <div><div class="shift-date">חודש ${displayM}</div><div style="font-weight:800; color:${clr};">${txt}</div></div>
+                        <div style="display:flex; align-items:center; gap:10px;">${linkBtn}<button onclick="deleteBtlRecord('${m}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button></div>
+                    </div>`;
             });
         }
 
-        function generateReportText() {
-            const selectedMonth = document.getElementById('report-month').value;
-            const [year, month] = selectedMonth.split('-');
-            const filtered = allShifts.filter(s => s.date.startsWith(selectedMonth));
+        // --- 7. ADMIN PANEL ---
+        function loadAdminPanel() {
+            rootDb.on('value', snap => {
+                const users = snap.val() || {};
+                const list = document.getElementById('admin-users-list');
+                list.innerHTML = '';
+                
+                for(let u in users) {
+                    if(u === 'admin') continue; // לא להציג את האדמין ברשימה
+                    const data = users[u];
+                    const name = data.settings?.empName || 'לא הוגדר שם';
+                    
+                    list.innerHTML += `
+                        <div class="admin-user-card">
+                            <div>
+                                <div style="font-weight: 800; color: var(--primary-dark); font-size: 1.1rem;">@${u}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-gray);">${name}</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="adminResetPassword('${u}')" style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">איפוס ל-1234</button>
+                                <button onclick="adminDeleteUser('${u}')" style="background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">מחק</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        async function adminCreateUser() {
+            const usernameInput = document.getElementById('admin-new-user').value.trim().toLowerCase();
+            if(!usernameInput || usernameInput === 'admin') return alert('שם משתמש לא חוקי.');
             
-            let totalHours = 0;
-            filtered.forEach(s => totalHours += s.hours);
-            const totalPay = totalHours * appSettings.empRate;
+            const snapshot = await rootDb.child(usernameInput).once('value');
+            if(snapshot.exists()) return alert('שם משתמש כבר קיים במערכת!');
 
-            let text = `📋 *דוח שעות עבודה - משק בית*\n`;
-            text += `עובד/ת: ${appSettings.empName} | ת"ז: ${appSettings.empId}\n`;
-            text += `חודש: ${month}/${year}\n`;
-            text += `------------------------------\n`;
-            text += `סך הכל שעות: ${totalHours.toFixed(1)} שעות\n`;
-            text += `תעריף שעתי: ₪${appSettings.empRate}\n`;
-            text += `סך הכל לתשלום: ₪${totalPay.toFixed(0)}\n`;
-            text += `------------------------------\n`;
-            text += `פירוט משמרות:\n`;
-
-            filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
-                const formattedDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
-                text += `• ${formattedDate}: ${s.start}-${s.end} (${s.hours.toFixed(1)} שעות)\n`;
+            const defaultHash = await hashPassword('1234');
+            await rootDb.child(usernameInput).set({
+                auth: { passHash: defaultHash, mustChange: true },
+                settings: { empName: '', empId: '', empRate: 0 },
+                shifts: {}, btl: {}
             });
-
-            return text;
+            document.getElementById('admin-new-user').value = '';
+            alert(`המשתמש ${usernameInput} נוצר בהצלחה! סיסמתו הראשונית היא 1234.`);
         }
 
-        function exportWhatsApp() {
-            const text = generateReportText();
-            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
+        async function adminResetPassword(username) {
+            if(confirm(`האם לאפס את הסיסמה של ${username} בחזרה ל-1234?`)) {
+                const defaultHash = await hashPassword('1234');
+                await rootDb.child(username).child('auth').update({ passHash: defaultHash, mustChange: true });
+                alert('הסיסמה אופסה.');
+            }
         }
 
-        function exportEmail() {
-            const text = generateReportText();
-            const selectedMonth = document.getElementById('report-month').value;
-            const subject = `דוח שעות משק בית - ${selectedMonth}`;
-            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
+        function adminDeleteUser(username) {
+            if(confirm(`אזהרה! האם אתה בטוח שברצונך למחוק את המשתמש ${username} ואת כל נתוניו לחלוטין?`)) {
+                rootDb.child(username).remove();
+            }
         }
+
+        // אזין למקש אנטר בלוגין
+        document.getElementById('login-pass').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') attemptLogin();
+        });
+        document.getElementById('login-user').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') document.getElementById('login-pass').focus();
+        });
     </script>
 </body>
 </html>
