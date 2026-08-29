@@ -21,6 +21,7 @@
             --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             --text-dark: #1e1b4b;
             --white: #ffffff;
+            --danger: #ef4444;
         }
 
         * { box-sizing: border-box; font-family: 'Heebo', sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -65,6 +66,13 @@
         .shift-date { font-weight: 800; font-size: 1.05rem; color: var(--primary-dark); }
         .shift-details { font-size: 0.9rem; color: #4b5563; }
         .shift-pay { font-weight: 800; color: #059669; font-size: 1rem; }
+
+        .action-icon-btn {
+            background: rgba(0, 0, 0, 0.05); border: none; width: 32px; height: 32px; border-radius: 8px; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s;
+        }
+        .action-icon-btn:active { transform: scale(0.9); }
+        .action-icon-btn.delete { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        .action-icon-btn.edit { color: var(--primary); background: rgba(79, 70, 229, 0.1); }
 
         /* --- מבנה ראשי ותצוגות --- */
         #login-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center; color: var(--white); }
@@ -154,14 +162,14 @@
             <!-- בלשונית 1: דיווח שעות -->
             <div id="tab-log" class="tab-content">
                 <div class="glass-panel">
-                    <h2>⏱️ דיווח משמרת חדשה</h2>
+                    <h2>⏱️ דיווח משמרת</h2>
                     <label>תאריך:</label>
                     <input type="date" id="shift-date">
                     <div class="time-row">
                         <div><label>שעת התחלה:</label><input type="time" id="shift-start" value="08:00"></div>
                         <div><label>שעת סיום:</label><input type="time" id="shift-end" value="12:00"></div>
                     </div>
-                    <button class="btn-primary" onclick="addShift()">שמור משמרת</button>
+                    <button id="btn-save-shift" class="btn-primary" onclick="addShift()">שמור משמרת</button>
                 </div>
                 <h3 style="color: white; margin-bottom: 12px; font-weight: 800;">📋 משמרות אחרונות</h3>
                 <div id="recent-shifts-list"></div>
@@ -180,6 +188,7 @@
                         <div>סך הכל שעות לתקופה:</div>
                         <div class="big-num" id="rpt-total-hours">0 שעות</div>
                         <div style="margin-top: 10px; font-size: 1.1rem; font-weight: 700;" id="rpt-total-pay">סך הכל לתשלום: ₪0</div>
+                        <div style="margin-top: 5px; font-size: 1rem; font-weight: 600; color: #a5b4fc;" id="rpt-total-btl">דמי ביטוח מחושבים: ₪0</div>
                     </div>
 
                     <button class="btn-primary btn-excel" onclick="exportToExcel()">⬇️ הורד דוח לאקסל (CSV)</button>
@@ -196,7 +205,14 @@
                     <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--primary-dark);">מעקב אחרי חודשי הדיווח ששולמו.</p>
                     <label>בחר חודש ושנה:</label>
                     <input type="month" id="btl-month">
-                    <label class="checkbox-label"><input type="checkbox" id="btl-paid"> שולם דיווח לחודש זה</label>
+                    
+                    <div class="time-row" style="align-items: center; margin-bottom: 15px;">
+                        <label class="checkbox-label" style="margin: 0;"><input type="checkbox" id="btl-paid"> שולם דיווח לחודש זה</label>
+                        <div>
+                            <input type="number" id="btl-amount" placeholder="סכום ששולם (₪)" style="margin: 0;">
+                        </div>
+                    </div>
+
                     <label>קישור לאישור תשלום (אופציונלי):</label>
                     <input type="text" id="btl-link" dir="ltr" placeholder="https://...">
                     <button class="btn-primary" onclick="saveBtlRecord()">💾 שמור דיווח</button>
@@ -213,8 +229,18 @@
                     <input type="text" id="set-emp-name">
                     <label>תעודת זהות:</label>
                     <input type="text" id="set-emp-id">
-                    <label>תעריף שעתי (₪):</label>
-                    <input type="number" id="set-emp-rate">
+                    
+                    <div class="time-row">
+                        <div>
+                            <label>תעריף שעתי (₪):</label>
+                            <input type="number" id="set-emp-rate">
+                        </div>
+                        <div>
+                            <label>שיעור ביטוח לאומי (%):</label>
+                            <input type="number" step="0.1" id="set-btl-rate" placeholder="למשל: 7.25">
+                        </div>
+                    </div>
+
                     <button class="btn-primary btn-success" onclick="saveSettings()">💾 שמור שינויים</button>
                 </div>
                 <div class="glass-panel" style="background: rgba(255, 255, 255, 0.4);">
@@ -259,7 +285,6 @@
 
     <script>
         // --- 1. FIREBASE SETUP & INIT ---
-        // REPLACE THE CONFIG BELOW WITH YOUR SPECIFIC FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAKlewYVxd7bWRRV-M8hs_YZKuYp1V0TQM",
             authDomain: "family-travel-app-d4710.firebaseapp.com",
@@ -276,10 +301,9 @@
         let currentUser = null;
         let userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
         let userRef = null;
+        let currentEditShiftId = null;
 
         // --- 2. AUTHENTICATION & SECURITY ---
-
-        // Basic Hashing function for client-side (Not for high-security banking, but good enough for this scope)
         async function hashPassword(password) {
             const msgBuffer = new TextEncoder().encode(password);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -299,29 +323,19 @@
             const errEl = document.getElementById('login-error');
 
             if(!usernameInput || !passwordInput) {
-                errEl.innerText = "יש להזין שם משתמש וסיסמה.";
-                errEl.style.display = 'block';
-                return;
+                errEl.innerText = "יש להזין שם משתמש וסיסמה."; errEl.style.display = 'block'; return;
             }
 
             const username = usernameInput.toLowerCase();
 
-            // Setup initial Admin if it doesn't exist
             if (username === 'admin' && passwordInput === '021181@') {
                 const adminHash = await hashPassword('021181@');
                 const adminSnapshot = await rootDb.child('admin').once('value');
-                if(!adminSnapshot.exists()) {
-                    await rootDb.child('admin/auth').set({ passHash: adminHash, mustChange: false });
-                }
+                if(!adminSnapshot.exists()) await rootDb.child('admin/auth').set({ passHash: adminHash, mustChange: false });
             }
 
             rootDb.child(username).once('value', async (snapshot) => {
-                if (!snapshot.exists()) {
-                    errEl.innerText = "משתמש לא קיים.";
-                    errEl.style.display = 'block';
-                    return;
-                }
-
+                if (!snapshot.exists()) { errEl.innerText = "משתמש לא קיים."; errEl.style.display = 'block'; return; }
                 const userDoc = snapshot.val();
                 const hashAttempt = await hashPassword(passwordInput);
 
@@ -329,25 +343,17 @@
                     errEl.style.display = 'none';
                     loginSuccess(username, userDoc);
                 } else {
-                    errEl.innerText = "סיסמה שגויה.";
-                    errEl.style.display = 'block';
+                    errEl.innerText = "סיסמה שגויה."; errEl.style.display = 'block';
                 }
             });
         }
 
         function loginSuccess(username, data) {
-            currentUser = username;
-            userData = data;
-            userRef = rootDb.child(username);
-
+            currentUser = username; userData = data; userRef = rootDb.child(username);
             document.getElementById('login-view').style.display = 'none';
 
-            // Check if must change password (usually if pass is '1234')
-            if (data.auth && data.auth.mustChange) {
-                document.getElementById('force-password-modal').style.display = 'flex';
-            } else {
-                startAppSession();
-            }
+            if (data.auth && data.auth.mustChange) document.getElementById('force-password-modal').style.display = 'flex';
+            else startAppSession();
         }
 
         async function forcePasswordChange() {
@@ -355,52 +361,35 @@
             const p2 = document.getElementById('new-pass-2').value;
             const errEl = document.getElementById('pass-error');
 
-            if (p1 !== p2) {
-                errEl.innerText = "הסיסמאות אינן תואמות."; errEl.style.display = 'block'; return;
-            }
-            if (!validatePasswordStrength(p1)) {
-                errEl.innerText = "הסיסמה חלשה מדי. ודא שיש 6 תווים וסימן מיוחד."; errEl.style.display = 'block'; return;
-            }
+            if (p1 !== p2) { errEl.innerText = "הסיסמאות אינן תואמות."; errEl.style.display = 'block'; return; }
+            if (!validatePasswordStrength(p1)) { errEl.innerText = "הסיסמה חלשה מדי. ודא שיש 6 תווים וסימן מיוחד."; errEl.style.display = 'block'; return; }
 
             const newHash = await hashPassword(p1);
             await userRef.child('auth').update({ passHash: newHash, mustChange: false });
-            
             document.getElementById('force-password-modal').style.display = 'none';
             startAppSession();
         }
 
         function logout() {
-            if(userRef) userRef.off(); // Stop listening
-            currentUser = null;
-            userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
-            document.getElementById('login-user').value = '';
-            document.getElementById('login-pass').value = '';
-            document.getElementById('app-view').style.display = 'none';
-            document.getElementById('login-view').style.display = 'flex';
+            if(userRef) userRef.off(); 
+            currentUser = null; userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
+            document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = '';
+            document.getElementById('app-view').style.display = 'none'; document.getElementById('login-view').style.display = 'flex';
         }
 
         // --- 3. APP INITIALIZATION & DATA LISTENING ---
         function startAppSession() {
             document.getElementById('app-view').style.display = 'flex';
-            
-            // Set Admin specific UI
-            if (currentUser === 'admin') {
-                document.getElementById('nav-admin').style.display = 'flex';
-            } else {
-                document.getElementById('nav-admin').style.display = 'none';
-            }
+            document.getElementById('nav-admin').style.display = (currentUser === 'admin') ? 'flex' : 'none';
 
-            // Listen to current user data
             userRef.on('value', snap => {
                 userData = snap.val() || { settings: {}, shifts: {}, btl: {}, auth: {} };
-                if(!userData.settings) userData.settings = { empName: '', empId: '', empRate: 0 };
+                if(!userData.settings) userData.settings = { empName: '', empId: '', empRate: 0, btlRate: 0 };
                 if(!userData.shifts) userData.shifts = {};
                 if(!userData.btl) userData.btl = {};
-
                 updateUI();
             });
 
-            // Set default dates for inputs
             const today = new Date();
             document.getElementById('shift-date').valueAsDate = today;
             const currentMonthStr = today.toISOString().slice(0,7);
@@ -418,7 +407,6 @@
             document.getElementById('tab-' + tabId).classList.add('active');
             if (btn) btn.classList.add('active');
             document.querySelector('main').scrollTop = 0;
-            
             if(tabId === 'report') renderReport();
         }
 
@@ -431,6 +419,7 @@
             document.getElementById('set-emp-name').value = s.empName || '';
             document.getElementById('set-emp-id').value = s.empId || '';
             document.getElementById('set-emp-rate').value = s.empRate || '';
+            document.getElementById('set-btl-rate').value = s.btlRate || '';
 
             renderRecentShifts();
             if(document.getElementById('tab-report').classList.contains('active')) renderReport();
@@ -450,16 +439,40 @@
             if (eMins <= sMins) return alert('שעת הסיום חייבת להיות מאוחרת מההתחלה.');
 
             const hours = (eMins - sMins) / 60;
-            userRef.child('shifts').push({ date, start, end, hours }).then(() => alert('המשמרת נשמרה!'));
+            
+            if (currentEditShiftId) {
+                userRef.child('shifts').child(currentEditShiftId).update({ date, start, end, hours }).then(() => {
+                    alert('המשמרת עודכנה!');
+                    currentEditShiftId = null;
+                    const btn = document.getElementById('btn-save-shift');
+                    btn.innerText = "שמור משמרת";
+                    btn.style.background = "var(--primary)";
+                });
+            } else {
+                userRef.child('shifts').push({ date, start, end, hours }).then(() => alert('המשמרת נשמרה!'));
+            }
         }
 
-        function deleteShift(id) {
-            if(confirm('האם למחוק משמרת זו?')) userRef.child('shifts').child(id).remove();
+        function deleteShift(id) { if(confirm('האם למחוק משמרת זו?')) userRef.child('shifts').child(id).remove(); }
+
+        function editShift(id) {
+            const s = userData.shifts[id];
+            if(!s) return;
+            document.getElementById('shift-date').value = s.date;
+            document.getElementById('shift-start').value = s.start;
+            document.getElementById('shift-end').value = s.end;
+            currentEditShiftId = id;
+            
+            const btn = document.getElementById('btn-save-shift');
+            btn.innerText = "💾 שמור שינויים";
+            btn.style.background = "#059669"; // Green
+            
+            switchTab('log', document.getElementById('nav-log'));
+            document.querySelector('main').scrollTop = 0;
         }
 
         function renderRecentShifts() {
-            const list = document.getElementById('recent-shifts-list');
-            list.innerHTML = '';
+            const list = document.getElementById('recent-shifts-list'); list.innerHTML = '';
             const shiftsArr = Object.keys(userData.shifts).map(k => ({id: k, ...userData.shifts[k]}));
             const sorted = shiftsArr.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
@@ -472,9 +485,10 @@
                 list.innerHTML += `
                     <div class="shift-card">
                         <div><div class="shift-date">${fDate}</div><div class="shift-details">${s.start}-${s.end} (${s.hours.toFixed(1)} שעות)</div></div>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <div class="shift-pay">₪${pay.toFixed(0)}</div>
-                            <button onclick="deleteShift('${s.id}')" style="background:none; border:none; color:var(--danger); font-size:1.2rem; cursor:pointer;">🗑️</button>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div class="shift-pay" style="margin-left: 5px;">₪${pay.toFixed(0)}</div>
+                            <button class="action-icon-btn edit" onclick="editShift('${s.id}')">✏️</button>
+                            <button class="action-icon-btn delete" onclick="deleteShift('${s.id}')">🗑️</button>
                         </div>
                     </div>`;
             });
@@ -484,7 +498,8 @@
             const newSet = {
                 empName: document.getElementById('set-emp-name').value.trim(),
                 empId: document.getElementById('set-emp-id').value.trim(),
-                empRate: parseFloat(document.getElementById('set-emp-rate').value) || 0
+                empRate: parseFloat(document.getElementById('set-emp-rate').value) || 0,
+                btlRate: parseFloat(document.getElementById('set-btl-rate').value) || 0
             };
             userRef.child('settings').set(newSet).then(() => alert('הגדרות נשמרו.'));
         }
@@ -492,11 +507,9 @@
         async function changePasswordFromSettings() {
             const oldP = document.getElementById('set-pass-old').value;
             const newP = document.getElementById('set-pass-new').value;
-            
             const oldHash = await hashPassword(oldP);
             if (userData.auth.passHash !== oldHash) return alert('הסיסמה הנוכחית שגויה.');
             if (!validatePasswordStrength(newP)) return alert('הסיסמה החדשה חלשה מדי.');
-
             const newHash = await hashPassword(newP);
             userRef.child('auth').update({ passHash: newHash }).then(() => {
                 alert('הסיסמה הוחלפה בהצלחה.');
@@ -509,7 +522,6 @@
             const startVal = document.getElementById('report-start').value;
             const endVal = document.getElementById('report-end').value;
             const shiftsArr = Object.keys(userData.shifts).map(k => ({id: k, ...userData.shifts[k]}));
-            
             return shiftsArr.filter(s => {
                 const shiftMonth = s.date.substring(0,7);
                 return shiftMonth >= startVal && shiftMonth <= endVal;
@@ -519,16 +531,17 @@
         function renderReport() {
             const filtered = getFilteredShifts();
             const rate = userData.settings.empRate || 0;
+            const btlRate = userData.settings.btlRate || 0;
             
-            let totalHours = 0;
-            filtered.forEach(s => totalHours += s.hours);
+            let totalHours = 0; filtered.forEach(s => totalHours += s.hours);
             const totalPay = totalHours * rate;
+            const totalBtl = totalPay * (btlRate / 100);
 
             document.getElementById('rpt-total-hours').innerText = `${totalHours.toFixed(1)} שעות`;
             document.getElementById('rpt-total-pay').innerText = `סך הכל לתשלום: ₪${totalPay.toFixed(0)}`;
+            document.getElementById('rpt-total-btl').innerText = `דמי ביטוח מחושבים: ₪${totalBtl.toFixed(0)} (${btlRate}%)`;
 
-            const list = document.getElementById('report-shifts-list');
-            list.innerHTML = '';
+            const list = document.getElementById('report-shifts-list'); list.innerHTML = '';
             if(filtered.length === 0) list.innerHTML = '<div style="color:white; text-align:center;">אין נתונים לתקופה זו.</div>';
 
             filtered.forEach(s => {
@@ -545,12 +558,16 @@
         function generateExportText() {
             const filtered = getFilteredShifts();
             const rate = userData.settings.empRate || 0;
+            const btlRate = userData.settings.btlRate || 0;
             let totalHours = 0; filtered.forEach(s => totalHours += s.hours);
+            const totalPay = totalHours * rate;
+            const totalBtl = totalPay * (btlRate / 100);
+            
             const startM = document.getElementById('report-start').value;
             const endM = document.getElementById('report-end').value;
             const period = startM === endM ? startM : `מ-${startM} עד ${endM}`;
 
-            let txt = `📋 *דוח נוכחות - משק בית*\nעובד: ${userData.settings.empName || '-'}\nתקופה: ${period}\nסה"כ שעות: ${totalHours.toFixed(1)}\nסה"כ לתשלום: ₪${(totalHours * rate).toFixed(0)}\n\n*פירוט:*\n`;
+            let txt = `📋 *דוח נוכחות - משק בית*\nעובד: ${userData.settings.empName || '-'}\nתקופה: ${period}\nסה"כ שעות: ${totalHours.toFixed(1)}\nסה"כ לתשלום: ₪${totalPay.toFixed(0)}\nדמי ביטוח לאומי (${btlRate}%): ₪${totalBtl.toFixed(0)}\n\n*פירוט:*\n`;
             filtered.forEach(s => {
                 const fDate = new Date(s.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
                 txt += `• ${fDate}: ${s.start}-${s.end} (${s.hours.toFixed(1)} ש')\n`;
@@ -560,12 +577,11 @@
 
         function exportWhatsApp() { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(generateExportText())}`, '_blank'); }
 
-        // ייצוא אקסל אמיתי כקובץ CSV
         function exportToExcel() {
             const filtered = getFilteredShifts();
             const rate = userData.settings.empRate || 0;
+            const btlRate = userData.settings.btlRate || 0;
             
-            // כותרות ה-CSV (כולל BOM כדי שאקסל יקרא עברית נכון)
             let csvContent = '\uFEFF'; 
             csvContent += "תאריך,שעת התחלה,שעת סיום,סהכ שעות,תעריף,שכר למשמרת\n";
             
@@ -577,7 +593,10 @@
                 csvContent += `${fDate},${s.start},${s.end},${s.hours.toFixed(2)},${rate},${pay.toFixed(2)}\n`;
             });
             
-            csvContent += `\nסהכ תקופה,,,,${tHours.toFixed(2)},${(tHours*rate).toFixed(2)}\n`;
+            const totalPay = tHours * rate;
+            const totalBtl = totalPay * (btlRate / 100);
+            csvContent += `\nסהכ תקופה,,,,${tHours.toFixed(2)},${totalPay.toFixed(2)}\n`;
+            csvContent += `דמי ביטוח מחושבים (${btlRate}%),,,,,${totalBtl.toFixed(2)}\n`;
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
@@ -594,13 +613,19 @@
         function saveBtlRecord() {
             const m = document.getElementById('btl-month').value;
             const p = document.getElementById('btl-paid').checked;
+            const a = parseFloat(document.getElementById('btl-amount').value) || 0;
             const l = document.getElementById('btl-link').value.trim();
             if (!m) return alert('חובה לבחור חודש.');
-            userRef.child('btl').child(m).set({ paid: p, link: l }).then(() => {
-                alert('שומר בהצלחה.'); document.getElementById('btl-link').value = ''; document.getElementById('btl-paid').checked = false;
+            userRef.child('btl').child(m).set({ paid: p, amount: a, link: l }).then(() => {
+                alert('נשמר בהצלחה.'); 
+                document.getElementById('btl-link').value = ''; 
+                document.getElementById('btl-amount').value = ''; 
+                document.getElementById('btl-paid').checked = false;
             });
         }
+        
         function deleteBtlRecord(m) { if(confirm('למחוק רישום ביטוח לאומי זה?')) userRef.child('btl').child(m).remove(); }
+        
         function renderBtlRecords() {
             const list = document.getElementById('btl-list'); list.innerHTML = '';
             const mArr = Object.keys(userData.btl).sort((a,b) => b.localeCompare(a));
@@ -609,12 +634,13 @@
                 const rec = userData.btl[m];
                 const displayM = `${m.split('-')[1]}/${m.split('-')[0]}`;
                 const clr = rec.paid ? '#059669' : '#ef4444';
-                const txt = rec.paid ? '✅ שולם' : '❌ לא שולם';
+                const amountText = (rec.paid && rec.amount) ? ` (₪${rec.amount})` : '';
+                const txt = rec.paid ? `✅ שולם${amountText}` : '❌ לא שולם';
                 const linkBtn = rec.link ? `<a href="${rec.link}" target="_blank" style="background:var(--primary); color:white; padding:6px 12px; border-radius:8px; text-decoration:none; font-size:0.85rem;">📄 אישור</a>` : '';
                 list.innerHTML += `
                     <div class="shift-card">
                         <div><div class="shift-date">חודש ${displayM}</div><div style="font-weight:800; color:${clr};">${txt}</div></div>
-                        <div style="display:flex; align-items:center; gap:10px;">${linkBtn}<button onclick="deleteBtlRecord('${m}')" style="background:none; border:none; color:#ef4444; font-size:1.2rem; cursor:pointer;">🗑️</button></div>
+                        <div style="display:flex; align-items:center; gap:10px;">${linkBtn}<button class="action-icon-btn delete" onclick="deleteBtlRecord('${m}')">🗑️</button></div>
                     </div>`;
             });
         }
@@ -623,26 +649,18 @@
         function loadAdminPanel() {
             rootDb.on('value', snap => {
                 const users = snap.val() || {};
-                const list = document.getElementById('admin-users-list');
-                list.innerHTML = '';
-                
+                const list = document.getElementById('admin-users-list'); list.innerHTML = '';
                 for(let u in users) {
-                    if(u === 'admin') continue; // לא להציג את האדמין ברשימה
-                    const data = users[u];
-                    const name = data.settings?.empName || 'לא הוגדר שם';
-                    
+                    if(u === 'admin') continue;
+                    const data = users[u]; const name = data.settings?.empName || 'לא הוגדר שם';
                     list.innerHTML += `
                         <div class="admin-user-card">
-                            <div>
-                                <div style="font-weight: 800; color: var(--primary-dark); font-size: 1.1rem;">@${u}</div>
-                                <div style="font-size: 0.85rem; color: var(--text-gray);">${name}</div>
-                            </div>
+                            <div><div style="font-weight: 800; color: var(--primary-dark); font-size: 1.1rem;">@${u}</div><div style="font-size: 0.85rem; color: var(--text-gray);">${name}</div></div>
                             <div style="display: flex; gap: 8px;">
                                 <button onclick="adminResetPassword('${u}')" style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">איפוס ל-1234</button>
                                 <button onclick="adminDeleteUser('${u}')" style="background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">מחק</button>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                 }
             });
         }
@@ -650,41 +668,24 @@
         async function adminCreateUser() {
             const usernameInput = document.getElementById('admin-new-user').value.trim().toLowerCase();
             if(!usernameInput || usernameInput === 'admin') return alert('שם משתמש לא חוקי.');
-            
             const snapshot = await rootDb.child(usernameInput).once('value');
             if(snapshot.exists()) return alert('שם משתמש כבר קיים במערכת!');
-
             const defaultHash = await hashPassword('1234');
-            await rootDb.child(usernameInput).set({
-                auth: { passHash: defaultHash, mustChange: true },
-                settings: { empName: '', empId: '', empRate: 0 },
-                shifts: {}, btl: {}
-            });
-            document.getElementById('admin-new-user').value = '';
-            alert(`המשתמש ${usernameInput} נוצר בהצלחה! סיסמתו הראשונית היא 1234.`);
+            await rootDb.child(usernameInput).set({ auth: { passHash: defaultHash, mustChange: true }, settings: { empName: '', empId: '', empRate: 0, btlRate: 0 }, shifts: {}, btl: {} });
+            document.getElementById('admin-new-user').value = ''; alert(`המשתמש ${usernameInput} נוצר בהצלחה! סיסמתו 1234.`);
         }
 
         async function adminResetPassword(username) {
             if(confirm(`האם לאפס את הסיסמה של ${username} בחזרה ל-1234?`)) {
                 const defaultHash = await hashPassword('1234');
-                await rootDb.child(username).child('auth').update({ passHash: defaultHash, mustChange: true });
-                alert('הסיסמה אופסה.');
+                await rootDb.child(username).child('auth').update({ passHash: defaultHash, mustChange: true }); alert('הסיסמה אופסה.');
             }
         }
 
-        function adminDeleteUser(username) {
-            if(confirm(`אזהרה! האם אתה בטוח שברצונך למחוק את המשתמש ${username} ואת כל נתוניו לחלוטין?`)) {
-                rootDb.child(username).remove();
-            }
-        }
+        function adminDeleteUser(username) { if(confirm(`אזהרה! האם למחוק את המשתמש ${username} לחלוטין?`)) rootDb.child(username).remove(); }
 
-        // אזין למקש אנטר בלוגין
-        document.getElementById('login-pass').addEventListener('keypress', function(e) {
-            if(e.key === 'Enter') attemptLogin();
-        });
-        document.getElementById('login-user').addEventListener('keypress', function(e) {
-            if(e.key === 'Enter') document.getElementById('login-pass').focus();
-        });
+        document.getElementById('login-pass').addEventListener('keypress', function(e) { if(e.key === 'Enter') attemptLogin(); });
+        document.getElementById('login-user').addEventListener('keypress', function(e) { if(e.key === 'Enter') document.getElementById('login-pass').focus(); });
     </script>
 </body>
 </html>
