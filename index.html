@@ -112,7 +112,10 @@
         .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         
         /* פאנל ניהול מיוחד */
-        .admin-user-card { background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #10b981;}
+        .auth-box { display: flex; flex-direction: column; }
+        .auth-box input[type="email"], .auth-box input[type="password"] { direction: ltr; text-align: left; }
+        .auth-link { color: rgba(255,255,255,0.9); font-size: 0.95rem; font-weight: 600; text-decoration: underline; cursor: pointer; background: none; border: none; margin-top: 10px; font-family: inherit; }
+        #auth-error { color: #fecaca; font-weight: 600; margin-top: 15px; margin-bottom: 0; min-height: 1.2em; white-space: pre-line; }
     </style>
 </head>
 <body>
@@ -122,24 +125,26 @@
         <div class="login-card">
             <img src="icon.png" alt="לוגו" style="width: 90px; height: 90px; border-radius: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); margin-bottom: 15px; object-fit: cover; border: 2px solid rgba(255,255,255,0.5);" onerror="this.style.display='none'">
             <h1>מערכת דיווחי נוכחות</h1>
-            <p>אנא התחבר כדי לגשת למערכת</p>
-            <input type="text" id="login-user" placeholder="שם משתמש" autocapitalize="none" autocomplete="username">
-            <input type="password" id="login-pass" placeholder="סיסמה">
-            <button class="btn-primary" onclick="attemptLogin()">התחבר</button>
-            <p id="login-error" style="color: #fca5a5; margin-top: 15px; display: none; font-weight: 600;"></p>
-        </div>
-    </div>
+            <p>אלירן ודרור</p>
+            <div id="auth-loading" style="opacity: 0.9;">טוען...</div>
 
-    <!-- מודאל החלפת סיסמה ראשונית חובה -->
-    <div id="force-password-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>🔒 אבטחת מידע</h3>
-            <p>זיהינו שאתה משתמש בסיסמה הזמנית (1234). עליך לבחור סיסמה חדשה לפני שתוכל להמשיך.</p>
-            <p style="font-size: 0.85rem; color: #a5b4fc; text-align: right; padding-right: 5px;">* לפחות 6 תווים<br>* חייב להכיל לפחות אחד מהסימנים: @, #, $, !, %, &</p>
-            <input type="password" id="new-pass-1" placeholder="סיסמה חדשה">
-            <input type="password" id="new-pass-2" placeholder="אימות סיסמה חדשה">
-            <button class="btn-primary" onclick="forcePasswordChange()">שמור והיכנס</button>
-            <p id="pass-error" style="color: #fca5a5; margin-top: 10px; font-weight: 600; display: none;"></p>
+            <div id="auth-form" class="auth-box" style="display: none;">
+                <input type="email" id="auth-email" placeholder="כתובת מייל" autocomplete="email" autocapitalize="none">
+                <input type="password" id="auth-password" placeholder="סיסמה" autocomplete="current-password">
+                <input type="password" id="auth-password2" placeholder="אימות סיסמה" autocomplete="new-password" style="display: none;">
+                <button class="btn-primary" id="auth-submit" onclick="submitAuth()">כניסה</button>
+                <button class="auth-link" id="auth-toggle" onclick="toggleAuthMode()">משתמש/ת חדש/ה? להרשמה</button>
+                <button class="auth-link" id="auth-reset" onclick="resetPassword()">שכחתי סיסמה</button>
+            </div>
+
+            <div id="auth-verify" class="auth-box" style="display: none;">
+                <p style="line-height: 1.5;">שלחנו מייל אימות ל-<br><b id="verify-email" dir="ltr"></b><br>לחצו על הקישור במייל (בדקו גם בספאם), ואז על הכפתור:</p>
+                <button class="btn-primary" onclick="checkVerified()">✅ אימתתי, המשך</button>
+                <button class="auth-link" onclick="resendVerification()">שלח מייל אימות שוב</button>
+                <button class="auth-link" onclick="logout()">התנתק</button>
+            </div>
+
+            <p id="auth-error"></p>
         </div>
     </div>
 
@@ -244,28 +249,9 @@
                     <button class="btn-primary btn-success" onclick="saveSettings()">💾 שמור שינויים</button>
                 </div>
                 <div class="glass-panel" style="background: rgba(255, 255, 255, 0.4);">
-                    <h3 style="color: var(--primary-dark); font-size: 1.1rem; margin-bottom: 15px; font-weight: 800;">החלפת סיסמה לאפליקציה</h3>
-                    <input type="password" id="set-pass-old" placeholder="סיסמה נוכחית">
-                    <input type="password" id="set-pass-new" placeholder="סיסמה חדשה (6 תווים וסימן מיוחד)">
-                    <button class="btn-primary" onclick="changePasswordFromSettings()">שנה סיסמה</button>
-                </div>
-            </div>
-
-            <!-- בלשונית 5: פאנל ניהול (Admin Only) -->
-            <div id="tab-admin" class="tab-content">
-                <div class="glass-panel" style="border: 2px solid #10b981;">
-                    <h2 style="color: #059669;">👑 פאנל ניהול (מנהל)</h2>
-                    <p style="font-size: 0.9rem; margin-bottom: 15px; color: var(--text-dark); font-weight: 600;">
-                        יצירה וניהול של משתמשים במערכת. סיסמת ברירת מחדל למשתמש חדש היא <strong>1234</strong>.
-                    </p>
-                    <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                        <h3 style="font-size: 1rem; margin-bottom: 10px; color: var(--primary-dark); font-weight: 800;">הוספת משתמש חדש</h3>
-                        <input type="text" id="admin-new-user" placeholder="שם משתמש (באנגלית/מספרים)">
-                        <button class="btn-primary btn-success" onclick="adminCreateUser()">➕ צור משתמש</button>
-                    </div>
-
-                    <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--primary-dark); font-weight: 800;">משתמשים קיימים</h3>
-                    <div id="admin-users-list"></div>
+                    <div style="font-size: 0.85rem; color: var(--primary-dark); font-weight: 800;">מחובר/ת כ:</div>
+                    <div id="account-email" dir="ltr" style="font-weight: 800; color: var(--text-dark); text-align: right; overflow: hidden; text-overflow: ellipsis; margin-bottom: 12px;"></div>
+                    <button class="btn-primary" onclick="if(confirm('להתנתק מהאפליקציה במכשיר זה?')) logout()" style="background: var(--danger);">🚪 התנתק</button>
                 </div>
             </div>
         </main>
@@ -275,12 +261,12 @@
             <button class="nav-btn" onclick="switchTab('report', this)" id="nav-report"><span>📊</span>דוחות</button>
             <button class="nav-btn" onclick="switchTab('btl', this)" id="nav-btl"><span>🛡️</span>ב. לאומי</button>
             <button class="nav-btn" onclick="switchTab('settings', this)" id="nav-settings"><span>⚙️</span>הגדרות</button>
-            <button class="nav-btn" onclick="switchTab('admin', this)" id="nav-admin" style="display:none; color: #10b981;"><span>👑</span>ניהול</button>
         </nav>
     </div>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 
     <script>
@@ -295,99 +281,145 @@
             appId: "1:843954095365:web:d9687120c3987d3a7aa36c"
         };
         firebase.initializeApp(firebaseConfig);
-        const rootDb = firebase.database().ref('MultiTenantCleanerApp/Users');
+        const auth = firebase.auth();
+        const appRoot = firebase.database().ref('MultiTenantCleanerApp');
+        // כל הנתונים (של מריה) משותפים לאלירן ולדרור תחת נתיב אחד
+        const userRef = appRoot.child('Shared');
 
         // State Variables
-        let currentUser = null;
-        let userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
-        let userRef = null;
+        let userData = { settings: {}, shifts: {}, btl: {} };
         let currentEditShiftId = null;
+        let appStarted = false;
 
-        // --- 2. AUTHENTICATION & SECURITY ---
-        async function hashPassword(password) {
-            const msgBuffer = new TextEncoder().encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        // --- 2. AUTHENTICATION (מייל + סיסמה) ---
+        // רשימת המורשים. האכיפה האמיתית נעשית ב-Firebase Database Rules.
+        const ALLOWED_EMAILS = ['eliranshmilo@gmail.com', 'deror82@gmail.com'];
+        let authMode = 'login';
+
+        function authErrorText(err) {
+            const map = {
+                'auth/invalid-credential': 'מייל או סיסמה שגויים.', 'auth/wrong-password': 'מייל או סיסמה שגויים.', 'auth/user-not-found': 'המשתמש לא קיים. יש להירשם קודם.',
+                'auth/invalid-login-credentials': 'מייל או סיסמה שגויים.', 'auth/email-already-in-use': 'המייל כבר רשום. עברו ל"כניסה".', 'auth/weak-password': 'הסיסמה חלשה מדי (לפחות 6 תווים).',
+                'auth/invalid-email': 'כתובת מייל לא תקינה.', 'auth/too-many-requests': 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.', 'auth/network-request-failed': 'אין חיבור לאינטרנט.',
+                'auth/operation-not-allowed': 'כניסה במייל וסיסמה לא הופעלה ב-Firebase.'
+            };
+            return map[err.code] || ('שגיאה: ' + (err.message || err.code));
+        }
+        function setAuthError(msg) { document.getElementById('auth-error').innerText = msg || ''; }
+
+        function showAuthScreen(view, email) {
+            document.getElementById('app-view').style.display = 'none';
+            document.getElementById('login-view').style.display = 'flex';
+            document.getElementById('auth-loading').style.display = view === 'loading' ? 'block' : 'none';
+            document.getElementById('auth-form').style.display = view === 'form' ? 'flex' : 'none';
+            document.getElementById('auth-verify').style.display = view === 'verify' ? 'flex' : 'none';
+            if (view === 'verify') document.getElementById('verify-email').innerText = email;
         }
 
-        function validatePasswordStrength(pass) {
-            if (pass.length < 6) return false;
-            const specialChars = /[@#\$%&!]/;
-            return specialChars.test(pass);
+        function toggleAuthMode() {
+            authMode = authMode === 'login' ? 'signup' : 'login'; setAuthError('');
+            const signup = authMode === 'signup';
+            document.getElementById('auth-password2').style.display = signup ? 'block' : 'none';
+            document.getElementById('auth-reset').style.display = signup ? 'none' : 'block';
+            document.getElementById('auth-submit').innerText = signup ? 'הרשמה' : 'כניסה';
+            document.getElementById('auth-toggle').innerText = signup ? 'כבר רשום/ה? לכניסה' : 'משתמש/ת חדש/ה? להרשמה';
+            document.getElementById('auth-password').setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
         }
 
-        async function attemptLogin() {
-            const usernameInput = document.getElementById('login-user').value.trim();
-            const passwordInput = document.getElementById('login-pass').value.trim();
-            const errEl = document.getElementById('login-error');
-
-            if(!usernameInput || !passwordInput) {
-                errEl.innerText = "יש להזין שם משתמש וסיסמה."; errEl.style.display = 'block'; return;
-            }
-
-            const username = usernameInput.toLowerCase();
-
-            if (username === 'admin' && passwordInput === '021181@') {
-                const adminHash = await hashPassword('021181@');
-                const adminSnapshot = await rootDb.child('admin').once('value');
-                if(!adminSnapshot.exists()) await rootDb.child('admin/auth').set({ passHash: adminHash, mustChange: false });
-            }
-
-            rootDb.child(username).once('value', async (snapshot) => {
-                if (!snapshot.exists()) { errEl.innerText = "משתמש לא קיים."; errEl.style.display = 'block'; return; }
-                const userDoc = snapshot.val();
-                const hashAttempt = await hashPassword(passwordInput);
-
-                if (userDoc.auth && userDoc.auth.passHash === hashAttempt) {
-                    errEl.style.display = 'none';
-                    loginSuccess(username, userDoc);
+        async function submitAuth() {
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
+            const pass = document.getElementById('auth-password').value;
+            setAuthError('');
+            if (!email || !pass) return setAuthError('יש למלא מייל וסיסמה.');
+            if (!ALLOWED_EMAILS.includes(email)) return setAuthError('המייל הזה אינו מורשה לגשת לאפליקציה.');
+            const btn = document.getElementById('auth-submit'); btn.disabled = true;
+            try {
+                if (authMode === 'signup') {
+                    if (pass.length < 6) return setAuthError('הסיסמה חייבת להכיל לפחות 6 תווים.');
+                    if (pass !== document.getElementById('auth-password2').value) return setAuthError('הסיסמאות אינן תואמות.');
+                    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+                    auth.languageCode = 'he';
+                    await cred.user.sendEmailVerification();
                 } else {
-                    errEl.innerText = "סיסמה שגויה."; errEl.style.display = 'block';
+                    await auth.signInWithEmailAndPassword(email, pass);
                 }
-            });
+            } catch (err) { setAuthError(authErrorText(err)); }
+            finally { btn.disabled = false; }
         }
 
-        function loginSuccess(username, data) {
-            currentUser = username; userData = data; userRef = rootDb.child(username);
+        async function resetPassword() {
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
+            if (!email) return setAuthError('הקלידו את כתובת המייל בשדה ואז לחצו "שכחתי סיסמה".');
+            if (!ALLOWED_EMAILS.includes(email)) return setAuthError('המייל הזה אינו מורשה לגשת לאפליקציה.');
+            try { auth.languageCode = 'he'; await auth.sendPasswordResetEmail(email); setAuthError('נשלח מייל לאיפוס סיסמה (בדקו גם בספאם).'); }
+            catch (err) { setAuthError(authErrorText(err)); }
+        }
+
+        async function checkVerified() {
+            const user = auth.currentUser; if (!user) return showAuthScreen('form');
+            await user.reload();
+            if (!auth.currentUser.emailVerified) return setAuthError('המייל עדיין לא אומת. לחצו על הקישור במייל ונסו שוב.');
+            await auth.currentUser.getIdToken(true); // רענון כדי שה-Rules יזהו שהמייל אומת
+            handleAuthUser(auth.currentUser);
+        }
+
+        async function resendVerification() {
+            try { auth.languageCode = 'he'; await auth.currentUser.sendEmailVerification(); setAuthError('מייל אימות נשלח שוב.'); }
+            catch (err) { setAuthError(authErrorText(err)); }
+        }
+
+        async function logout() {
+            userRef.off();
+            await auth.signOut();
+            location.reload();
+        }
+
+        async function handleAuthUser(user) {
+            setAuthError('');
+            if (!user) return showAuthScreen('form');
+            if (user.isAnonymous) { await auth.signOut(); return; }
+            const email = (user.email || '').toLowerCase();
+            if (!ALLOWED_EMAILS.includes(email)) { await auth.signOut(); showAuthScreen('form'); return setAuthError('המייל הזה אינו מורשה לגשת לאפליקציה.'); }
+            if (!user.emailVerified) return showAuthScreen('verify', email);
             document.getElementById('login-view').style.display = 'none';
-
-            if (data.auth && data.auth.mustChange) document.getElementById('force-password-modal').style.display = 'flex';
-            else startAppSession();
+            document.getElementById('account-email').innerText = email;
+            if (!appStarted) { appStarted = true; await migrateLegacyData(); startAppSession(); }
+            else document.getElementById('app-view').style.display = 'flex';
         }
 
-        async function forcePasswordChange() {
-            const p1 = document.getElementById('new-pass-1').value;
-            const p2 = document.getElementById('new-pass-2').value;
-            const errEl = document.getElementById('pass-error');
-
-            if (p1 !== p2) { errEl.innerText = "הסיסמאות אינן תואמות."; errEl.style.display = 'block'; return; }
-            if (!validatePasswordStrength(p1)) { errEl.innerText = "הסיסמה חלשה מדי. ודא שיש 6 תווים וסימן מיוחד."; errEl.style.display = 'block'; return; }
-
-            const newHash = await hashPassword(p1);
-            await userRef.child('auth').update({ passHash: newHash, mustChange: false });
-            document.getElementById('force-password-modal').style.display = 'none';
-            startAppSession();
+        // העברה חד-פעמית: מעתיק את הנתונים של מריה מהמערכת הישנה (שם משתמש/סיסמה) לנתיב המשותף.
+        // הנתונים הישנים לא נמחקים.
+        async function migrateLegacyData() {
+            try {
+                const sharedSnap = await userRef.once('value');
+                if (sharedSnap.exists()) return;
+                const usersSnap = await appRoot.child('Users').once('value');
+                const users = usersSnap.val() || {};
+                const candidates = Object.keys(users).filter(u => u !== 'admin').map(u => users[u] || {});
+                if (candidates.length === 0) return;
+                const count = d => Object.keys(d.shifts || {}).length + Object.keys(d.btl || {}).length;
+                const maria = candidates.find(d => (d.settings?.empName || '').includes('מריה'));
+                const best = maria || candidates.sort((a, b) => count(b) - count(a))[0];
+                await userRef.set({ settings: best.settings || {}, shifts: best.shifts || {}, btl: best.btl || {}, migratedAt: Date.now() });
+            } catch (e) { console.error('Migration failed:', e); }
         }
 
-        function logout() {
-            if(userRef) userRef.off(); 
-            currentUser = null; userData = { settings: {}, shifts: {}, btl: {}, auth: {} };
-            document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = '';
-            document.getElementById('app-view').style.display = 'none'; document.getElementById('login-view').style.display = 'flex';
-        }
+        auth.onAuthStateChanged(handleAuthUser);
+        ['auth-email', 'auth-password', 'auth-password2'].forEach(id => document.getElementById(id).addEventListener('keypress', (e) => { if (e.key === 'Enter') submitAuth(); }));
 
         // --- 3. APP INITIALIZATION & DATA LISTENING ---
         function startAppSession() {
             document.getElementById('app-view').style.display = 'flex';
-            document.getElementById('nav-admin').style.display = (currentUser === 'admin') ? 'flex' : 'none';
 
             userRef.on('value', snap => {
-                userData = snap.val() || { settings: {}, shifts: {}, btl: {}, auth: {} };
+                userData = snap.val() || { settings: {}, shifts: {}, btl: {} };
                 if(!userData.settings) userData.settings = { empName: '', empId: '', empRate: 0, btlRate: 0 };
                 if(!userData.shifts) userData.shifts = {};
                 if(!userData.btl) userData.btl = {};
                 updateUI();
+            }, err => {
+                console.error('DB read error:', err);
+                alert('אין הרשאת גישה לנתונים. ודאו שהמייל שלכם מאומת ומורשה.');
             });
 
             const today = new Date();
@@ -398,7 +430,6 @@
             document.getElementById('btl-month').value = currentMonthStr;
 
             switchTab('log', document.getElementById('nav-log'));
-            if(currentUser === 'admin') loadAdminPanel();
         }
 
         function switchTab(tabId, btn) {
@@ -502,19 +533,6 @@
                 btlRate: parseFloat(document.getElementById('set-btl-rate').value) || 0
             };
             userRef.child('settings').set(newSet).then(() => alert('הגדרות נשמרו.'));
-        }
-
-        async function changePasswordFromSettings() {
-            const oldP = document.getElementById('set-pass-old').value;
-            const newP = document.getElementById('set-pass-new').value;
-            const oldHash = await hashPassword(oldP);
-            if (userData.auth.passHash !== oldHash) return alert('הסיסמה הנוכחית שגויה.');
-            if (!validatePasswordStrength(newP)) return alert('הסיסמה החדשה חלשה מדי.');
-            const newHash = await hashPassword(newP);
-            userRef.child('auth').update({ passHash: newHash }).then(() => {
-                alert('הסיסמה הוחלפה בהצלחה.');
-                document.getElementById('set-pass-old').value = ''; document.getElementById('set-pass-new').value = '';
-            });
         }
 
         // --- 5. ADVANCED REPORTS & EXPORT ---
@@ -644,48 +662,6 @@
                     </div>`;
             });
         }
-
-        // --- 7. ADMIN PANEL ---
-        function loadAdminPanel() {
-            rootDb.on('value', snap => {
-                const users = snap.val() || {};
-                const list = document.getElementById('admin-users-list'); list.innerHTML = '';
-                for(let u in users) {
-                    if(u === 'admin') continue;
-                    const data = users[u]; const name = data.settings?.empName || 'לא הוגדר שם';
-                    list.innerHTML += `
-                        <div class="admin-user-card">
-                            <div><div style="font-weight: 800; color: var(--primary-dark); font-size: 1.1rem;">@${u}</div><div style="font-size: 0.85rem; color: var(--text-gray);">${name}</div></div>
-                            <div style="display: flex; gap: 8px;">
-                                <button onclick="adminResetPassword('${u}')" style="background: #f59e0b; color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">איפוס ל-1234</button>
-                                <button onclick="adminDeleteUser('${u}')" style="background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.8rem;">מחק</button>
-                            </div>
-                        </div>`;
-                }
-            });
-        }
-
-        async function adminCreateUser() {
-            const usernameInput = document.getElementById('admin-new-user').value.trim().toLowerCase();
-            if(!usernameInput || usernameInput === 'admin') return alert('שם משתמש לא חוקי.');
-            const snapshot = await rootDb.child(usernameInput).once('value');
-            if(snapshot.exists()) return alert('שם משתמש כבר קיים במערכת!');
-            const defaultHash = await hashPassword('1234');
-            await rootDb.child(usernameInput).set({ auth: { passHash: defaultHash, mustChange: true }, settings: { empName: '', empId: '', empRate: 0, btlRate: 0 }, shifts: {}, btl: {} });
-            document.getElementById('admin-new-user').value = ''; alert(`המשתמש ${usernameInput} נוצר בהצלחה! סיסמתו 1234.`);
-        }
-
-        async function adminResetPassword(username) {
-            if(confirm(`האם לאפס את הסיסמה של ${username} בחזרה ל-1234?`)) {
-                const defaultHash = await hashPassword('1234');
-                await rootDb.child(username).child('auth').update({ passHash: defaultHash, mustChange: true }); alert('הסיסמה אופסה.');
-            }
-        }
-
-        function adminDeleteUser(username) { if(confirm(`אזהרה! האם למחוק את המשתמש ${username} לחלוטין?`)) rootDb.child(username).remove(); }
-
-        document.getElementById('login-pass').addEventListener('keypress', function(e) { if(e.key === 'Enter') attemptLogin(); });
-        document.getElementById('login-user').addEventListener('keypress', function(e) { if(e.key === 'Enter') document.getElementById('login-pass').focus(); });
     </script>
 </body>
 </html>
