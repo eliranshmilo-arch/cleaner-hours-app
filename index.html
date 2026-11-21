@@ -393,15 +393,12 @@
         async function migrateLegacyData() {
             try {
                 const shared = (await userRef.once('value')).val() || {};
-                if (shared.legacyMergedV2) return;
+                if (shared.legacyMergedV3) return;
                 const sources = [];
 
-                const users = (await appRoot.child('Users').once('value')).val() || {};
-                const candidates = Object.keys(users).filter(u => u !== 'admin').map(u => users[u] || {});
-                const count = d => Object.keys(d.shifts || {}).length + Object.keys(d.btl || {}).length;
-                const maria = candidates.find(d => (d.settings?.empName || '').includes('מריה'));
-                const best = maria || candidates.sort((a, b) => count(b) - count(a))[0];
-                if (best) sources.push(best);
+                // הנתונים של מריה נשמרו תחת המשתמש admin בגרסה הקודמת (orna/test אינם קשורים).
+                const adminData = (await appRoot.child('Users/admin').once('value')).val();
+                if (adminData) sources.push(adminData);
 
                 let oldAppRead = false;
                 try {
@@ -415,8 +412,11 @@
                 const existingShifts = shared.shifts || {};
                 const seen = new Set(Object.values(existingShifts).map(sig));
                 const existingBtl = shared.btl || {};
+                // ההגדרות נלקחות מ-admin (ייתכן שבהעברה הקודמת נלקחו בטעות מ-orna)
+                const adminSet = adminData && adminData.settings;
+                if (adminSet && (adminSet.empName || adminSet.empRate)) updates['settings'] = adminSet;
                 const s0 = shared.settings || {};
-                let settingsSet = !!(s0.empName || s0.empRate);
+                let settingsSet = !!(updates['settings'] || s0.empName || s0.empRate);
 
                 sources.forEach(src => {
                     if (!settingsSet && src.settings && (src.settings.empName || src.settings.empRate)) { updates['settings'] = src.settings; settingsSet = true; }
@@ -425,13 +425,14 @@
                         seen.add(sig(s)); updates['shifts/' + k] = s;
                     });
                     Object.entries(src.btl || {}).forEach(([m, rec]) => {
-                        if (!rec || existingBtl[m] || updates['btl/' + m]) return;
+                        // admin (הגרסה החדשה יותר, כולל סכום ששולם) גובר על עותק ישן מ-CleanerApp
+                        if (!rec || updates['btl/' + m] || (existingBtl[m] && src !== adminData)) return;
                         updates['btl/' + m] = rec;
                     });
                 });
 
                 updates['migratedAt'] = Date.now();
-                if (oldAppRead) updates['legacyMergedV2'] = true; // אם אין עדיין גישה ל-CleanerApp, ננסה שוב בכניסה הבאה
+                if (oldAppRead) updates['legacyMergedV3'] = true; // אם אין עדיין גישה ל-CleanerApp, ננסה שוב בכניסה הבאה
                 await userRef.update(updates);
             } catch (e) { console.error('Migration failed:', e); }
         }
