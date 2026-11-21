@@ -387,20 +387,52 @@
             else document.getElementById('app-view').style.display = 'flex';
         }
 
-        // העברה חד-פעמית: מעתיק את הנתונים של מריה מהמערכת הישנה (שם משתמש/סיסמה) לנתיב המשותף.
-        // הנתונים הישנים לא נמחקים.
+        // העברה חד-פעמית: ממזג לנתיב המשותף את הנתונים של מריה משתי הגרסאות הישנות:
+        // 1) MultiTenantCleanerApp/Users/<user> (גרסת שם משתמש/סיסמה)  2) CleanerApp (הגרסה הראשונה).
+        // משמרות כפולות (אותו תאריך+שעות) לא מתווספות. הנתונים הישנים לא נמחקים.
         async function migrateLegacyData() {
             try {
-                const sharedSnap = await userRef.once('value');
-                if (sharedSnap.exists()) return;
-                const usersSnap = await appRoot.child('Users').once('value');
-                const users = usersSnap.val() || {};
+                const shared = (await userRef.once('value')).val() || {};
+                if (shared.legacyMergedV2) return;
+                const sources = [];
+
+                const users = (await appRoot.child('Users').once('value')).val() || {};
                 const candidates = Object.keys(users).filter(u => u !== 'admin').map(u => users[u] || {});
-                if (candidates.length === 0) return;
                 const count = d => Object.keys(d.shifts || {}).length + Object.keys(d.btl || {}).length;
                 const maria = candidates.find(d => (d.settings?.empName || '').includes('מריה'));
                 const best = maria || candidates.sort((a, b) => count(b) - count(a))[0];
-                await userRef.set({ settings: best.settings || {}, shifts: best.shifts || {}, btl: best.btl || {}, migratedAt: Date.now() });
+                if (best) sources.push(best);
+
+                let oldAppRead = false;
+                try {
+                    const old = (await firebase.database().ref('CleanerApp').once('value')).val();
+                    if (old) sources.push(old);
+                    oldAppRead = true;
+                } catch (e) { console.warn('No access to CleanerApp (check Rules):', e); }
+
+                const updates = {};
+                const sig = s => `${s.date}|${s.start}|${s.end}`;
+                const existingShifts = shared.shifts || {};
+                const seen = new Set(Object.values(existingShifts).map(sig));
+                const existingBtl = shared.btl || {};
+                const s0 = shared.settings || {};
+                let settingsSet = !!(s0.empName || s0.empRate);
+
+                sources.forEach(src => {
+                    if (!settingsSet && src.settings && (src.settings.empName || src.settings.empRate)) { updates['settings'] = src.settings; settingsSet = true; }
+                    Object.entries(src.shifts || {}).forEach(([k, s]) => {
+                        if (!s || !s.date || existingShifts[k] || seen.has(sig(s))) return;
+                        seen.add(sig(s)); updates['shifts/' + k] = s;
+                    });
+                    Object.entries(src.btl || {}).forEach(([m, rec]) => {
+                        if (!rec || existingBtl[m] || updates['btl/' + m]) return;
+                        updates['btl/' + m] = rec;
+                    });
+                });
+
+                updates['migratedAt'] = Date.now();
+                if (oldAppRead) updates['legacyMergedV2'] = true; // אם אין עדיין גישה ל-CleanerApp, ננסה שוב בכניסה הבאה
+                await userRef.update(updates);
             } catch (e) { console.error('Migration failed:', e); }
         }
 
